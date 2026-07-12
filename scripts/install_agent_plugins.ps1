@@ -24,4 +24,7 @@ if (-not $SkipCodexInstall -and (Get-Command codex -ErrorAction SilentlyContinue
   }
 }
 
-Write-Host "Creator Super Agent and Xinrui IP Studio are registered. Start a new Codex task to load the new versions."
+$registeredNames = $pluginRoots | ForEach-Object {
+  (Get-Content -Raw -Encoding utf8 (Join-Path $_ ".codex-plugin\plugin.json") | ConvertFrom-Json).name
+}
+Write-Host ("Registered plugins: " + ($registeredNames -join ", ") + ". Start a new Codex task to load the new versions.")
