@@ -2,6 +2,8 @@ const runtimeStatus = document.querySelector("#runtimeStatus");
 const appTitle = document.querySelector("#appTitle");
 const refreshButton = document.querySelector("#refreshButton");
 const syncButton = document.querySelector("#syncButton");
+const cloudSyncButton = document.querySelector("#cloudSyncButton");
+const cloudSyncStatus = document.querySelector("#cloudSyncStatus");
 const askButton = document.querySelector("#askButton");
 const searchButton = document.querySelector("#searchButton");
 const preciseSearchButton = document.querySelector("#preciseSearchButton");
@@ -1786,7 +1788,7 @@ async function loadRuntime() {
 }
 
 async function refreshAll() {
-  await Promise.all([loadRuntime(), loadAgentConsole(), loadSystemHealth(), loadEntities(), loadProjects(), loadProjectStatuses(), loadProposals()]);
+  await Promise.all([loadRuntime(), loadAgentConsole(), loadSystemHealth(), loadCloudLibraryStatus(), loadEntities(), loadProjects(), loadProjectStatuses(), loadProposals()]);
 }
 
 async function runSearch(mode = "broad") {
@@ -2063,6 +2065,66 @@ async function syncDatabase() {
   } finally {
     syncButton.disabled = false;
     syncButton.textContent = "同步资料库";
+  }
+}
+
+function renderCloudLibraryStatus(result = {}) {
+  if (!cloudSyncStatus || !cloudSyncButton) return;
+  if (!result.enabled) {
+    cloudSyncStatus.hidden = true;
+    cloudSyncButton.hidden = true;
+    cloudSyncButton.disabled = true;
+    return;
+  }
+  cloudSyncStatus.hidden = false;
+  cloudSyncButton.hidden = false;
+  cloudSyncButton.disabled = Boolean(result.running);
+  if (result.running || result.state?.status === "running") {
+    cloudSyncStatus.textContent = `云端同步中：${result.state?.phase || "准备"}`;
+    return;
+  }
+  if (result.state?.status === "failed") {
+    cloudSyncStatus.textContent = "云端同步失败";
+    return;
+  }
+  const files = result.localManifest?.files || result.state?.manifest?.files || 0;
+  const approved = result.localManifest?.approvedAssets || result.state?.manifest?.approvedAssets || 0;
+  const scheduled = result.schedule?.installed ? `每 ${result.schedule.intervalMinutes} 分钟` : "未定时";
+  const ready = String(result.state?.status || "").startsWith("ready");
+  cloudSyncStatus.textContent = ready
+    ? `${result.state?.status === "ready_remote_pending" ? "本地已更新，等待网络补推" : "云端已同步"} ${files} 项 · 原件获批 ${approved} · ${scheduled}`
+    : `云端待首次同步 · ${scheduled}`;
+}
+
+async function loadCloudLibraryStatus() {
+  if (!cloudSyncStatus) return;
+  try {
+    renderCloudLibraryStatus(await getJson("/api/cloud-library/status"));
+  } catch (error) {
+    cloudSyncStatus.textContent = `云端状态异常：${error.message}`;
+  }
+}
+
+async function syncCloudLibrary() {
+  if (!cloudSyncButton) return;
+  cloudSyncButton.disabled = true;
+  cloudSyncStatus.textContent = "正在启动云端同步...";
+  try {
+    await getJson("/api/cloud-library/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ includeApprovedAssets: true })
+    });
+    cloudSyncStatus.textContent = "云端同步已启动";
+    window.setTimeout(loadCloudLibraryStatus, 1500);
+  } catch (error) {
+    if (/409|already running|正在运行|同步中/i.test(error.message)) {
+      cloudSyncStatus.textContent = "云端同步正在进行";
+      window.setTimeout(loadCloudLibraryStatus, 1200);
+    } else {
+      cloudSyncStatus.textContent = `云端同步失败：${error.message}`;
+      cloudSyncButton.disabled = false;
+    }
   }
 }
 
@@ -2690,6 +2752,7 @@ async function loadEntities() {
 
 refreshButton.addEventListener("click", refreshAll);
 syncButton.addEventListener("click", syncDatabase);
+if (cloudSyncButton) cloudSyncButton.addEventListener("click", syncCloudLibrary);
 searchButton.addEventListener("click", () => runSearch());
 preciseSearchButton.addEventListener("click", () => runSearch("precise"));
 askButton.addEventListener("click", runAsk);
