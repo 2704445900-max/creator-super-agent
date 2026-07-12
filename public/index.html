@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>新锐纪元 IP 数据库</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <h1 id="appTitle">新锐纪元 IP 数据库</h1>
+          <p id="runtimeStatus">正在连接资料库...</p>
+        </div>
+        <div class="topbar-actions">
+          <button id="syncButton" type="button">同步资料库</button>
+          <button id="refreshButton" type="button">刷新</button>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <section class="rail">
+          <div class="panel query-panel">
+            <div class="panel-title-row">
+              <h2>资料问答</h2>
+              <select id="entityType">
+                <option value="">全部实体</option>
+                <option value="character">角色</option>
+                <option value="organization">组织</option>
+                <option value="event">事件</option>
+                <option value="project">项目</option>
+                <option value="term">术语</option>
+              </select>
+            </div>
+            <label class="field-row" for="questionInput">
+              <span>问题</span>
+              <textarea id="questionInput" rows="4" placeholder="例如：韩梦雪在队内是什么定位？"></textarea>
+            </label>
+            <div class="button-row">
+              <button id="askButton" class="primary" type="button">提问</button>
+              <button id="searchButton" type="button">搜索证据</button>
+              <button id="preciseSearchButton" type="button">精确检索</button>
+            </div>
+          </div>
+
+          <div class="panel agent-control-panel">
+            <div class="panel-title-row">
+              <h2>超级智能体</h2>
+              <span id="agentRuntimeStatus" class="status-text">正在读取运行状态。</span>
+            </div>
+            <label class="field-row" for="agentWorkspaceInput">
+              <span>工作区</span>
+              <select id="agentWorkspaceInput"></select>
+            </label>
+            <label class="field-row" for="agentGoalInput">
+              <span>创作目标</span>
+              <textarea id="agentGoalInput" rows="4" placeholder="输入要完成的作品、时长、平台与核心情节。"></textarea>
+            </label>
+            <label class="field-row" for="agentScriptInput">
+              <span>剧本 / 项目资料</span>
+              <textarea id="agentScriptInput" rows="6" placeholder="可输入完整剧本、情节梗概或当前已有资料。"></textarea>
+            </label>
+            <div class="compact-grid">
+              <label class="field-row" for="agentDurationInput">
+                <span>成片秒数</span>
+                <input id="agentDurationInput" type="number" min="3" max="7200" step="1" value="15">
+              </label>
+              <label class="field-row" for="agentBudgetInput">
+                <span>预算 RMB</span>
+                <input id="agentBudgetInput" type="number" min="0" step="1" placeholder="可选">
+              </label>
+            </div>
+            <label class="field-row" for="agentImageModelInput">
+              <span>图像模型</span>
+              <select id="agentImageModelInput">
+                <option value="gpt-image-2">ChatGPT / gpt-image-2</option>
+                <option value="">兼容云端图像模型（环境配置）</option>
+              </select>
+            </label>
+            <label class="toggle-row" for="agentUseLlmInput">
+              <input id="agentUseLlmInput" type="checkbox" checked>
+              <span>使用大模型研究、校准和提示词增强</span>
+            </label>
+            <label class="toggle-row" for="agentGenerateImagesInput">
+              <input id="agentGenerateImagesInput" type="checkbox">
+              <span>执行关键帧生图</span>
+            </label>
+            <label class="toggle-row" for="agentRequirePaidApprovalInput">
+              <input id="agentRequirePaidApprovalInput" type="checkbox" checked>
+              <span>付费生成前暂停审批</span>
+            </label>
+            <label class="toggle-row" for="agentRequireVisualApprovalInput">
+              <input id="agentRequireVisualApprovalInput" type="checkbox" checked>
+              <span>生成图通过视觉终审后继续</span>
+            </label>
+            <div class="button-row">
+              <button id="agentStartButton" class="primary" type="button">开始执行</button>
+              <button id="agentRefreshButton" type="button">刷新任务</button>
+            </div>
+          </div>
+
+          <div class="panel setting-panel">
+            <h2>设定完善</h2>
+            <label class="field-row" for="settingTargetName">
+              <span>目标实体</span>
+              <input id="settingTargetName" type="text" placeholder="例如：韩梦雪">
+            </label>
+            <label class="field-row" for="settingTargetType">
+              <span>实体类型</span>
+              <select id="settingTargetType">
+                <option value="">自动判断</option>
+                <option value="character">角色</option>
+                <option value="organization">组织</option>
+                <option value="event">事件</option>
+                <option value="project">项目</option>
+                <option value="term">术语</option>
+              </select>
+            </label>
+            <label class="field-row" for="settingIntent">
+              <span>完善目标</span>
+              <textarea id="settingIntent" rows="4" placeholder="例如：整理她的队内定位、战斗职责、情感创伤和可用于分镜的稳定设定。"></textarea>
+            </label>
+            <label class="toggle-row" for="settingUseLlm">
+              <input id="settingUseLlm" type="checkbox" checked>
+              <span>启用大模型合理化（未配置时自动生成保守提案）</span>
+            </label>
+            <button id="createProposalButton" class="primary wide" type="button">生成设定提案</button>
+          </div>
+
+          <div class="panel visual-panel">
+            <h2>视觉资产甄别</h2>
+            <label class="field-row" for="visualQuery">
+              <span>检索目标</span>
+              <input id="visualQuery" type="text" placeholder="例如：韩梦雪 角色参考 / 龙醒计划 分镜">
+            </label>
+            <div class="compact-grid">
+              <label class="field-row" for="visualRole">
+                <span>用途</span>
+                <select id="visualRole">
+                  <option value="">全部用途</option>
+                  <option value="identity_reference">身份参考</option>
+                  <option value="shot_reference">分镜构图</option>
+                  <option value="scene_reference">场景氛围</option>
+                  <option value="prop_reference">装备道具</option>
+                  <option value="style_reference">风格参考</option>
+                </select>
+              </label>
+              <label class="field-row" for="visualKind">
+                <span>类型</span>
+                <select id="visualKind">
+                  <option value="">全部类型</option>
+                  <option value="character_portrait">角色立绘</option>
+                  <option value="character_turnaround">角色三视图</option>
+                  <option value="storyboard_frame">故事板</option>
+                  <option value="comic_panel">漫画</option>
+                  <option value="scene_design">场景设计</option>
+                  <option value="weapon_design">武器设计</option>
+                </select>
+              </label>
+            </div>
+            <div class="button-row">
+              <button id="visualSearchButton" class="primary" type="button">筛选视觉资产</button>
+              <button id="refreshVisualProfilesButton" type="button">刷新视觉索引</button>
+            </div>
+          </div>
+
+          <div class="panel reference-panel">
+            <h2>专业参考计划</h2>
+            <label class="field-row" for="referenceQuery">
+              <span>参考目标</span>
+              <input id="referenceQuery" type="text" placeholder="例如：韩梦雪 潜入 军装 武器 动态参考">
+            </label>
+            <label class="field-row" for="referenceFocus">
+              <span>重点</span>
+              <select id="referenceFocus">
+                <option value="">自动判断</option>
+                <option value="uniform weapon equipment">军装 / 武器 / 装备</option>
+                <option value="pose action dynamic">角色动态</option>
+                <option value="scene environment storyboard">场景 / 分镜</option>
+                <option value="prompt workflow quality">提示词 / 工作流 / 质量复核</option>
+              </select>
+            </label>
+            <button id="buildReferencePlanButton" class="primary wide" type="button">生成参考计划</button>
+          </div>
+
+          <div class="panel workflow-panel">
+            <h2>全流程创作</h2>
+            <label class="field-row" for="workflowTopic">
+              <span>创作目标</span>
+              <input id="workflowTopic" type="text" placeholder="例如：林小队楼内潜入 15 秒动画">
+            </label>
+            <label class="field-row" for="workflowScript">
+              <span>剧本 / 情节</span>
+              <textarea id="workflowScript" rows="5" placeholder="输入情节后生成资料校准、资产设计、故事板、视频和宣发流程。"></textarea>
+            </label>
+            <button id="buildWorkflowButton" class="primary wide" type="button">生成全流程计划</button>
+          </div>
+
+          <div class="panel pipeline-control-panel">
+            <h2>智能执行 / 成本控制</h2>
+            <label class="field-row" for="pipelineTopicInput">
+              <span>创作指令</span>
+              <input id="pipelineTopicInput" type="text" placeholder="例如：林荫清雨夜潜入，做15秒手书分镜">
+            </label>
+            <label class="field-row" for="pipelinePromptInput">
+              <span>单帧提示词 / 画面意图</span>
+              <textarea id="pipelinePromptInput" rows="5" placeholder="输入一个分镜图想法，工作台会自动补充角色锁、道具锁、场景、调度、镜头、负面约束和自检项。"></textarea>
+            </label>
+            <label class="field-row" for="pipelineScriptInput">
+              <span>脚本 / 情节</span>
+              <textarea id="pipelineScriptInput" rows="6" placeholder="输入明确创作任务后，可生成详细创作方案和自动执行管线。"></textarea>
+            </label>
+            <label class="field-row" for="pipelineImagePathInput">
+              <span>待检查图片路径</span>
+              <input id="pipelineImagePathInput" type="text" placeholder="可选：F:\...\storyboard.png">
+            </label>
+            <label class="field-row" for="pipelineReferenceImageInput">
+              <span>图生图参考图路径 / fileId</span>
+              <input id="pipelineReferenceImageInput" type="text" placeholder="例如：fileId:820 或 F:\...\reference.png">
+            </label>
+            <label class="field-row" for="pipelineReferenceModeInput">
+              <span>参考图作用</span>
+              <select id="pipelineReferenceModeInput">
+                <option value="identity_lock">角色身份锁</option>
+                <option value="composition_lock">构图 / 姿势锁</option>
+                <option value="style_lock">画风锁</option>
+                <option value="prop_geometry_lock">道具几何锁</option>
+              </select>
+            </label>
+            <label class="toggle-row" for="pipelineReferenceExecuteInput">
+              <input id="pipelineReferenceExecuteInput" type="checkbox">
+              <span>立即调用已配置的图像后端生成（适用于文生图/图生图，会消耗额度）</span>
+            </label>
+            <div class="compact-grid">
+              <label class="field-row" for="pipelineDurationInput">
+                <span>成片秒数</span>
+                <input id="pipelineDurationInput" type="number" min="3" max="1800" step="1" value="15">
+              </label>
+              <label class="field-row" for="pipelineBudgetInput">
+                <span>预算 RMB</span>
+                <input id="pipelineBudgetInput" type="number" min="0" step="1" placeholder="可选">
+              </label>
+            </div>
+            <div class="compact-grid">
+              <label class="field-row" for="pipelineShotCountInput">
+                <span>镜头数</span>
+                <input id="pipelineShotCountInput" type="number" min="1" max="96" step="1" placeholder="自动">
+              </label>
+              <label class="field-row" for="pipelineRouteInput">
+                <span>模型路线</span>
+                <select id="pipelineRouteInput">
+                  <option value="seedance-balanced">Seedance 2.0 性价比</option>
+                  <option value="seedance-lite">Lite 草稿优先</option>
+                  <option value="seedance-pro">Pro 成片优先</option>
+                  <option value="seedance-2.5">Seedance 2.5 预留</option>
+                </select>
+              </label>
+            </div>
+            <div class="button-row">
+              <button id="pipelinePromptRefineButton" class="primary" type="button">细化单帧提示词</button>
+              <button id="pipelineAutoExecuteButton" type="button">自动管线</button>
+            </div>
+            <div class="button-row">
+              <button id="pipelineCreativePlanButton" type="button">详细创作方案</button>
+              <button id="pipelineVisualCheckButton" type="button">视觉检查</button>
+              <button id="pipelineCostButton" type="button">成本估算</button>
+            </div>
+            <div class="button-row">
+              <button id="pipelineImageGenerateButton" class="primary" type="button">生成 gpt-image-2 图像</button>
+              <button id="pipelineReferenceGenerateButton" class="primary" type="button">创建图生图参考任务</button>
+              <button id="pipelineImageDiagnosticsButton" type="button">图像后端诊断</button>
+            </div>
+            <div class="button-row">
+              <button id="pipelineCreativeSuiteButton" type="button">创作插件套件</button>
+            </div>
+          </div>
+
+          <div class="panel dramaturgy-panel">
+            <h2>剧本四层审查</h2>
+            <label class="field-row" for="dramaturgyCharacters">
+              <span>相关角色</span>
+              <input id="dramaturgyCharacters" type="text" placeholder="例如：林荫清 韩梦雪">
+            </label>
+            <label class="field-row" for="dramaturgyIntent">
+              <span>审查目标</span>
+              <input id="dramaturgyIntent" type="text" value="剧本审查、校准、纠错和升华">
+            </label>
+            <label class="field-row" for="dramaturgyText">
+              <span>剧本 / 分镜片段</span>
+              <textarea id="dramaturgyText" rows="7" placeholder="粘贴剧情、场景、分镜描述或小说片段，按感知运动影像、骨架、血肉、灵魂四层审查。"></textarea>
+            </label>
+            <div class="button-row">
+              <button id="reviewDramaturgyButton" class="primary" type="button">执行四层审查</button>
+              <button id="downloadDramaturgyRulesButton" type="button">下载规则库</button>
+            </div>
+          </div>
+
+          <div class="panel production-panel">
+            <h2>项目制生产</h2>
+            <label class="field-row" for="projectTitleInput">
+              <span>项目名称</span>
+              <input id="projectTitleInput" type="text" placeholder="例如：林荫清雨夜潜入手书">
+            </label>
+            <label class="field-row" for="projectIntentInput">
+              <span>项目目标</span>
+              <textarea id="projectIntentInput" rows="3" placeholder="例如：做一支 15 秒 B站预告，突出林荫清的冷静判断和战术美感。"></textarea>
+            </label>
+            <label class="field-row" for="projectScriptInput">
+              <span>剧情 / 需求</span>
+              <textarea id="projectScriptInput" rows="5" placeholder="输入剧本或想法后，自动建项目文件夹并盘点角色、场景、道具、服装、分镜和风格缺口。"></textarea>
+            </label>
+            <div class="button-row">
+              <button id="createProjectButton" class="primary" type="button">新建项目</button>
+              <button id="buildAssetInventoryButton" type="button">盘点资产</button>
+              <button id="refinePromptButton" type="button">精修提示词</button>
+            </div>
+          </div>
+
+          <div class="panel research-panel">
+            <h2>审美研究 / 浏览器参考</h2>
+            <label class="field-row" for="researchQueryInput">
+              <span>研究目标</span>
+              <input id="researchQueryInput" type="text" placeholder="例如：QBZ-81-1 自动步枪 / 东京城市地图 / 战术少女手书封面">
+            </label>
+            <label class="field-row" for="researchFocusInput">
+              <span>重点</span>
+              <select id="researchFocusInput">
+                <option value="">自动判断</option>
+                <option value="classic_film animation film_language">经典电影 / 动画 / 视听语言</option>
+                <option value="bilibili short_video_trend xiaohongshu">平台热点 / 封面 / 标题</option>
+                <option value="weapon equipment uniform scene">现实装备 / 城市 / 场景</option>
+                <option value="academic_review bilibili">成片复盘 / 受众 / 知网</option>
+              </select>
+            </label>
+            <button id="buildResearchPlanButton" class="primary wide" type="button">生成研究计划</button>
+          </div>
+
+          <div class="panel postproduction-panel">
+            <h2>后期与迁移</h2>
+            <label class="field-row" for="postTopicInput">
+              <span>视频 / 角色目标</span>
+              <input id="postTopicInput" type="text" placeholder="例如：林荫清 AE 手书动画 / 新锐纪元 15 秒预告">
+            </label>
+            <div class="button-row">
+              <button id="buildRiggingPlanButton" type="button">AE拆图规范</button>
+              <button id="buildVideoPlanButton" class="primary" type="button">视频制作管线</button>
+            </div>
+            <div class="button-row">
+              <button id="buildVideoReviewButton" type="button">成片复盘方案</button>
+              <button id="buildPortablePlanButton" type="button">迁移打包方案</button>
+            </div>
+          </div>
+
+          <div class="panel publishing-panel">
+            <h2>B站宣发 / 日更</h2>
+            <label class="field-row" for="publishingTopic">
+              <span>选题</span>
+              <input id="publishingTopic" type="text" placeholder="例如：韩梦雪潜入行动">
+            </label>
+            <label class="field-row" for="publishingScript">
+              <span>内容简介</span>
+              <textarea id="publishingScript" rows="5" placeholder="输入故事或热点方向，生成封面、标题、简介、标签和 15 秒动画设计。"></textarea>
+            </label>
+            <div class="button-row">
+              <button id="buildPublishingButton" class="primary" type="button">生成B站方案</button>
+              <button id="buildDailyBriefButton" type="button">生成日更简报</button>
+            </div>
+          </div>
+
+          <div class="panel storyboard-panel">
+            <h2>剧本分镜</h2>
+            <label class="field-row" for="storyTitle">
+              <span>项目标题</span>
+              <input id="storyTitle" type="text" placeholder="例如：韩梦雪潜入行动分镜">
+            </label>
+            <label class="field-row" for="storyScript">
+              <span>剧本片段</span>
+              <textarea id="storyScript" rows="8" placeholder="写一段剧情，大模型会先检索资料库设定，再生成镜头和绘图提示词。"></textarea>
+            </label>
+            <div class="compact-grid">
+              <label class="field-row" for="shotCount">
+                <span>镜头数</span>
+                <input id="shotCount" type="number" min="3" max="48" value="6">
+              </label>
+              <label class="field-row" for="storyStyle">
+                <span>画面风格</span>
+                <input id="storyStyle" type="text" value="近未来东方战术美少女动画分镜，电影感，克制真实">
+              </label>
+            </div>
+            <label class="toggle-row" for="useLlm">
+              <input id="useLlm" type="checkbox" checked>
+              <span>启用大模型优化（未配置时自动使用本地草稿）</span>
+            </label>
+            <div class="director-options">
+              <div class="panel-title-row director-title">
+                <h3>导演模式</h3>
+                <span class="status-text">面向 Seedance 2.0 等视频模型</span>
+              </div>
+              <div class="compact-grid">
+                <label class="field-row" for="directorTargetModel">
+                  <span>目标模型</span>
+                  <input id="directorTargetModel" type="text" value="Seedance 2.0">
+                </label>
+                <label class="field-row" for="directorAspectRatio">
+                  <span>画幅</span>
+                  <select id="directorAspectRatio">
+                    <option value="16:9">16:9</option>
+                    <option value="9:16">9:16</option>
+                    <option value="1:1">1:1</option>
+                    <option value="2.39:1">2.39:1</option>
+                  </select>
+                </label>
+              </div>
+              <div class="compact-grid">
+                <label class="field-row" for="directorFps">
+                  <span>FPS</span>
+                  <input id="directorFps" type="number" min="12" max="60" value="24">
+                </label>
+                <label class="field-row" for="directorTargetDuration">
+                  <span>目标总时长</span>
+                  <input id="directorTargetDuration" type="number" min="6" max="1800" step="1" placeholder="例如 15 / 60 / 180">
+                </label>
+                <label class="field-row" for="directorDuration">
+                  <span>单镜头秒数</span>
+                  <input id="directorDuration" type="number" min="1.5" max="12" step="0.5" value="4">
+                </label>
+              </div>
+              <label class="toggle-row" for="directorAutoShotPlanning">
+                <input id="directorAutoShotPlanning" type="checkbox" checked>
+                <span>根据剧本时长自动规划镜头数和单镜头时长</span>
+              </label>
+              <label class="field-row" for="directorSceneContinuity">
+                <span>统一场景设定</span>
+                <textarea id="directorSceneContinuity" rows="3">统一场景设定，保持时间、天气、空间方向、角色服装和装备连续。</textarea>
+              </label>
+              <label class="field-row" for="directorAxisRule">
+                <span>180度轴线</span>
+                <textarea id="directorAxisRule" rows="3">遵守 180 度轴线；同一场戏的角色左右关系、视线方向和行动方向保持稳定，越轴必须用中性镜头或明确转场解释。</textarea>
+              </label>
+            </div>
+            <button id="generateStoryboardButton" class="primary wide" type="button">生成分镜</button>
+          </div>
+
+          <div class="panel literature-panel">
+            <h2>文学拓展</h2>
+            <label class="field-row" for="literatureCharacters">
+              <span>相关角色</span>
+              <input id="literatureCharacters" type="text" placeholder="例如：林荫清 韩梦雪">
+            </label>
+            <label class="field-row" for="literatureIntent">
+              <span>创作/校准目标</span>
+              <textarea id="literatureIntent" rows="3" placeholder="例如：增强韩梦雪在潜入行动中的角色弧光，去掉提纲感和 AI 腔。"></textarea>
+            </label>
+            <label class="field-row" for="literatureText">
+              <span>小说片段</span>
+              <textarea id="literatureText" rows="8" placeholder="粘贴需要扩写、校准、去 AI 味或文学化的段落。"></textarea>
+            </label>
+            <label class="field-row" for="literatureTone">
+              <span>文体/语气</span>
+              <input id="literatureTone" type="text" value="克制、具体、有画面感，避免宣传腔和空泛总结">
+            </label>
+            <label class="toggle-row" for="literatureUseLlm">
+              <input id="literatureUseLlm" type="checkbox" checked>
+              <span>启用大模型文学化（未配置时使用本地编辑规则）</span>
+            </label>
+            <button id="expandLiteratureButton" class="primary wide" type="button">生成文学拓展</button>
+          </div>
+        </section>
+
+        <section class="content">
+          <div class="panel agent-console-panel">
+            <div class="panel-title-row">
+              <h2>智能体任务</h2>
+              <span id="agentRunStatus" class="status-text">暂无运行任务。</span>
+            </div>
+            <div id="agentRunList" class="agent-run-list"></div>
+            <div id="agentRunDetail" class="agent-run-detail empty">选择任务后查看执行步骤、审批和产物。</div>
+          </div>
+
+          <div class="panel llm-status-panel">
+            <div class="panel-title-row">
+              <h2>系统接入状态</h2>
+              <span id="llmStatusText" class="status-text">等待检测。</span>
+            </div>
+            <div id="llmStatusResult" class="literature-result empty">暂无系统接入状态。</div>
+          </div>
+
+          <div class="panel system-audit-panel">
+            <div class="panel-title-row">
+              <h2>系统健康 / 全管线核验</h2>
+              <span id="systemAuditStatus" class="status-text">等待核验。</span>
+            </div>
+            <div class="button-row">
+              <button id="systemHealthButton" type="button">刷新健康状态</button>
+              <button id="systemPipelineCheckButton" class="primary" type="button">运行隔离全管线核验</button>
+            </div>
+            <div id="systemAuditResult" class="literature-result empty">暂无全管线核验结果。</div>
+          </div>
+
+          <div class="panel stats-panel">
+            <h2>资料库状态</h2>
+            <div id="statsGrid" class="stats-grid"></div>
+          </div>
+
+          <div class="panel answer-card-panel">
+            <div class="panel-title-row">
+              <h2>首要结论卡</h2>
+              <span id="answerCardStatus" class="status-text">等待检索。</span>
+            </div>
+            <div id="answerCardResult" class="literature-result empty">暂无首要结论。</div>
+          </div>
+
+          <div class="panel result-panel">
+            <h2>回答</h2>
+            <div id="answerBox" class="answer-box empty">等待提问。</div>
+          </div>
+
+          <div class="panel shot-panel">
+            <div class="panel-title-row">
+              <h2>分镜镜头</h2>
+              <div class="shot-actions">
+                <span id="storyboardStatus" class="status-text">尚未生成。</span>
+                <button id="copyPromptPackButton" type="button" disabled>复制提示词包</button>
+                <button id="downloadPromptsButton" type="button" disabled>下载 Markdown</button>
+                <button id="downloadFramesButton" type="button" disabled>分镜草图包</button>
+                <button id="downloadIllustrationsButton" type="button" disabled>情景插图包</button>
+                <button id="downloadImage2PlanButton" type="button" disabled>image-2连续分镜</button>
+                <button id="downloadAuditButton" type="button" disabled>单图自检</button>
+                <button id="downloadBoardButton" type="button" disabled>故事板总图</button>
+              </div>
+            </div>
+            <div id="storyboardList" class="storyboard-list"></div>
+          </div>
+
+          <div class="panel board-result-panel">
+            <div class="panel-title-row">
+              <h2>故事板总图方案</h2>
+              <span id="boardStatus" class="status-text">等待分镜项目。</span>
+            </div>
+            <div id="boardResult" class="literature-result empty">暂无故事板总图方案。</div>
+          </div>
+
+          <div class="panel project-panel">
+            <div class="panel-title-row">
+              <h2>历史分镜</h2>
+              <button id="reloadProjectsButton" type="button">刷新列表</button>
+            </div>
+            <div id="projectList" class="project-list"></div>
+          </div>
+
+          <div class="panel proposal-panel">
+            <div class="panel-title-row">
+              <h2>设定提案</h2>
+              <button id="reloadProposalsButton" type="button">刷新提案</button>
+            </div>
+            <div id="proposalDetail" class="proposal-detail empty">暂无提案。</div>
+            <div id="proposalList" class="proposal-list"></div>
+          </div>
+
+          <div class="panel visual-result-panel">
+            <div class="panel-title-row">
+              <h2>视觉参考库</h2>
+              <span id="visualStatus" class="status-text">等待筛选。</span>
+            </div>
+            <div id="visualAssetList" class="visual-asset-list"></div>
+          </div>
+
+          <div class="panel literature-result-panel">
+            <div class="panel-title-row">
+              <h2>文学拓展结果</h2>
+              <span id="literatureStatus" class="status-text">等待文本。</span>
+            </div>
+            <div id="literatureResult" class="literature-result empty">暂无文学拓展。</div>
+          </div>
+
+          <div class="panel dramaturgy-result-panel">
+            <div class="panel-title-row">
+              <h2>剧本四层审查结果</h2>
+              <span id="dramaturgyStatus" class="status-text">等待剧本。</span>
+            </div>
+            <div id="dramaturgyResult" class="literature-result empty">暂无剧本审查。</div>
+          </div>
+
+          <div class="panel reference-result-panel">
+            <div class="panel-title-row">
+              <h2>外部专业参考</h2>
+              <span id="referenceStatus" class="status-text">等待目标。</span>
+            </div>
+            <div id="referenceResult" class="reference-result empty">暂无参考计划。</div>
+          </div>
+
+          <div class="panel workflow-result-panel">
+            <div class="panel-title-row">
+              <h2>全流程 / 宣发结果</h2>
+              <span id="workflowStatus" class="status-text">等待生成。</span>
+            </div>
+            <div id="workflowResult" class="literature-result empty">暂无流程或宣发方案。</div>
+          </div>
+
+          <div class="panel pipeline-result-panel">
+            <div class="panel-title-row">
+              <h2>智能执行 / 成本结果</h2>
+              <span id="pipelineStatus" class="status-text">等待生成。</span>
+            </div>
+            <div id="pipelineResult" class="literature-result empty">暂无智能管线结果。</div>
+          </div>
+
+          <div class="panel production-result-panel">
+            <div class="panel-title-row">
+              <h2>项目 / 资产 / 提示词</h2>
+              <span id="productionStatus" class="status-text">等待生成。</span>
+            </div>
+            <div id="productionResult" class="literature-result empty">暂无项目生产结果。</div>
+          </div>
+
+          <div class="panel project-status-panel">
+            <div class="panel-title-row">
+              <h2>项目状态面板</h2>
+              <span id="projectStatusText" class="status-text">等待扫描。</span>
+            </div>
+            <div id="projectStatusResult" class="literature-result empty">暂无项目状态。</div>
+          </div>
+
+          <div class="panel research-result-panel">
+            <div class="panel-title-row">
+              <h2>审美研究库</h2>
+              <span id="researchStatus" class="status-text">等待研究目标。</span>
+            </div>
+            <div id="researchResult" class="reference-result empty">暂无研究计划。</div>
+          </div>
+
+          <div class="panel post-result-panel">
+            <div class="panel-title-row">
+              <h2>后期 / 复盘 / 打包</h2>
+              <span id="postStatus" class="status-text">等待操作。</span>
+            </div>
+            <div id="postResult" class="literature-result empty">暂无后期方案。</div>
+          </div>
+
+          <div class="panel evidence-panel">
+            <h2>证据与素材</h2>
+            <div class="evidence-columns">
+              <div>
+                <h3>实体</h3>
+                <div id="entityList" class="entity-list"></div>
+              </div>
+              <div>
+                <h3>文档片段</h3>
+                <div id="chunkList" class="chunk-list"></div>
+              </div>
+              <div>
+                <h3>素材</h3>
+                <div id="assetList" class="asset-list"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
