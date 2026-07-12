@@ -12,5 +12,6 @@
     "provider": "none",
     "baseUrl": "https://api.openai.com/v1",
     "model": ""
-  }
+  },
+  "edition": "generic"
 }
