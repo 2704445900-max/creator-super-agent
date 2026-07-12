@@ -495,8 +495,18 @@ label,
 .topbar-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.topbar-actions .status-text {
+  max-width: 360px;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-alt);
+  overflow-wrap: anywhere;
 }
 
 .project-item {
