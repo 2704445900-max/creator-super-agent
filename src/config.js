@@ -51,8 +51,9 @@ export function getOutputRoot() {
 export function getSourceRoot() {
   loadDotEnv();
   const config = readDefaultConfig();
+  const requestedEdition = process.env.CREATOR_EDITION || config.edition || "combined";
   const genericDefault = path.join(PROJECT_ROOT, "content-packs", "creator-generic", "source");
-  const fallback = process.env.CREATOR_EDITION === "generic" ? genericDefault : config.sourceRoot;
+  const fallback = requestedEdition === "generic" ? genericDefault : config.sourceRoot;
   return resolveProjectPath(process.env.CREATOR_SOURCE_ROOT || process.env.XINRUI_SOURCE_ROOT, fallback);
 }
 
@@ -61,10 +62,11 @@ export function loadConfig(overrides = {}) {
   const config = readDefaultConfig();
   const merged = { ...config, ...overrides };
 
-  const genericEdition = process.env.CREATOR_EDITION === "generic";
+  const requestedEdition = process.env.CREATOR_EDITION || config.edition || "combined";
+  const genericEdition = requestedEdition === "generic";
   const genericSource = path.join(PROJECT_ROOT, "content-packs", "creator-generic", "source");
   const genericDatabase = path.join(PROJECT_ROOT, "data", "creator-agent.sqlite");
-  merged.edition = genericEdition ? "generic" : (process.env.CREATOR_EDITION || "combined");
+  merged.edition = genericEdition ? "generic" : requestedEdition;
   merged.sourceRoot = resolveProjectPath(
     process.env.CREATOR_SOURCE_ROOT || process.env.XINRUI_SOURCE_ROOT,
     genericEdition ? genericSource : merged.sourceRoot
