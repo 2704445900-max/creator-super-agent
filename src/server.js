@@ -3,6 +3,7 @@ import http from "node:http";
 import path from "node:path";
 import { URL } from "node:url";
 import { getOutputRoot, loadConfig, getProjectRoot } from "./config.js";
+import { getCloudLibraryStatus, startCloudLibrarySync } from "./cloud_library.js";
 import { initSchema, openDatabase } from "./db.js";
 import { createAgentRuntime } from "./agent_runtime.js";
 import {
@@ -666,6 +667,25 @@ async function handleApi(req, res, url) {
 
   if (req.method === "GET" && url.pathname === "/api/system/health") {
     sendJson(res, 200, await getSystemHealth(db, config));
+    return true;
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/cloud-library/status") {
+    sendJson(res, 200, getCloudLibraryStatus());
+    return true;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/cloud-library/sync") {
+    if (!requireAdmin(req)) {
+      sendJson(res, 401, { error: "admin token required" });
+      return true;
+    }
+    const body = await readJsonBody(req);
+    try {
+      sendJson(res, 202, startCloudLibrarySync(body));
+    } catch (error) {
+      sendJson(res, 409, { error: error.message });
+    }
     return true;
   }
 

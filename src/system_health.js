@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { getOutputRoot, getProjectRoot } from "./config.js";
+import { getCloudLibraryStatus } from "./cloud_library.js";
 import { getImageGenerationDiagnostics } from "./creative_pipeline.js";
 import { getCreativePluginSuite } from "./creative_suite.js";
 import { getLlmDiagnostics } from "./llm.js";
@@ -26,6 +27,7 @@ const PIPELINE_STAGES = [
   { id: "video", label: "Seedance、AE、PR 与动效", endpoints: ["/api/pipeline/cost-estimate", "/api/postproduction/video-plan"] },
   { id: "publishing", label: "B站宣发、日更与复盘", endpoints: ["/api/publishing/bilibili", "/api/daily/story-brief"] },
   { id: "portable", label: "迁移打包", endpoints: ["/api/package/portable-plan", "/api/package/export"] }
+  ,{ id: "cloud_library", label: "GitHub private cloud library", endpoints: ["/api/cloud-library/status", "/api/cloud-library/sync"] }
 ];
 
 function safeReadJson(filePath, fallback = null) {
@@ -133,6 +135,7 @@ export async function getSystemHealth(db, config) {
   const creativeSuite = getCreativePluginSuite();
   const postproduction = getPostproductionStatus();
   const latestPipeline = getLatestFullPipelineReport();
+  const cloudLibrary = getCloudLibraryStatus();
   const coreReady = database.quickCheck === "ok"
     && database.foreignKeyIssues === 0
     && paths.sourceRootExists
@@ -161,6 +164,7 @@ export async function getSystemHealth(db, config) {
     image,
     creativePlugins: pluginSummary(creativeSuite),
     postproduction,
+    cloudLibrary,
     pipelineStages: PIPELINE_STAGES,
     latestFullPipeline: latestPipeline,
     commands: {
