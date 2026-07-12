@@ -14,9 +14,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: node --check src/server.js
-      - run: node --check src/agent_runtime.js
-      - run: node --check src/content_packs.js
-      - run: node --check src/generic_pipeline.js
-      - run: node --check public/app.js
+      - name: Check every JavaScript module
+        shell: bash
+        run: |
+          find src -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+          find scripts -type f -name '*.mjs' -print0 | xargs -0 -n1 node --check
+          node --check public/app.js
       - run: node scripts/validate_codex_plugins.mjs
