@@ -1,0 +1,16 @@
+{
+  "sourceRoot": "content-packs/creator-generic/source",
+  "databasePath": "data/creator-agent.sqlite",
+  "chunkSize": 900,
+  "chunkOverlap": 120,
+  "hashMediaFiles": true,
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8787
+  },
+  "llm": {
+    "provider": "none",
+    "baseUrl": "https://api.openai.com/v1",
+    "model": ""
+  }
+}

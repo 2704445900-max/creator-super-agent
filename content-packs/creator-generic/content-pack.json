@@ -1,0 +1,41 @@
+{
+  "id": "creator-generic",
+  "name": "通用创作超级智能体",
+  "version": "0.1.0",
+  "kind": "generic",
+  "visibility": "public",
+  "canonMode": "project",
+  "description": "不绑定任何私有 IP 资料库的通用自媒体、动画与影视创作资源包。",
+  "capabilities": [
+    "project-planning",
+    "script-development",
+    "browser-first-research",
+    "asset-inventory",
+    "storyboard-direction",
+    "cloud-multimodal-image-generation",
+    "visual-qa",
+    "video-planning",
+    "postproduction-handoff",
+    "publishing-analysis"
+  ],
+  "imagePolicy": {
+    "priority": "cloud-multimodal-first",
+    "defaultProvider": "openai",
+    "defaultModel": "gpt-image-2",
+    "compatibleProviders": [
+      "openai",
+      "openai-compatible"
+    ],
+    "optionalLocalFallback": "comfyui"
+  },
+  "defaultWorkspace": {
+    "id": "creator-default",
+    "name": "通用创作工作区",
+    "mode": "generic",
+    "settings": {
+      "canonBoundary": "project-owned",
+      "externalResearch": "browser-first",
+      "approvalPolicy": "paid-and-publish"
+    }
+  }
+}

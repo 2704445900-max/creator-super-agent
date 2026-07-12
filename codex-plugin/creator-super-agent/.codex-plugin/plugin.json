@@ -1,0 +1,42 @@
+{
+  "name": "creator-super-agent",
+  "version": "0.1.0+codex.local-20260712-111803",
+  "description": "A portable full-pipeline creator agent for research, scripts, art assets, cloud multimodal image generation, storyboards, video planning, post-production, publishing, and review without binding to a private IP library.",
+  "author": {
+    "name": "Xinrui Era Studio"
+  },
+  "license": "MIT",
+  "keywords": [
+    "creator-agent",
+    "persistent-agent",
+    "content-pack",
+    "storyboard",
+    "gpt-image-2",
+    "cloud-multimodal-image",
+    "seedance",
+    "remotion",
+    "hyperframes",
+    "after-effects",
+    "premiere-pro",
+    "publishing"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "全流程创作超级智能体",
+    "shortDescription": "通用自媒体、动画与影视项目的持久化创作智能体。",
+    "longDescription": "为任意原创项目或账号建立隔离工作区，持续执行研究、剧本校准、资产清单、提示词、故事板、云端多模态生图、视觉质检、Seedance/后期方案和平台发布。付费生成、视觉终审和发布保留审批门禁。",
+    "developerName": "Xinrui Era Studio",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write",
+      "Interactive"
+    ],
+    "defaultPrompt": [
+      "为这个剧本建立项目，并按完整创作管线持续执行。",
+      "研究缺失参考，生成关键帧与15秒导演故事板。",
+      "分析这个账号和成片，给出发布、受众与复盘方案。"
+    ],
+    "brandColor": "#1F6F63"
+  }
+}

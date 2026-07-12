@@ -1,0 +1,7 @@
+interface:
+  display_name: "全流程创作超级智能体"
+  short_description: "隔离项目、持续执行并完成影视动画与自媒体管线"
+  brand_color: "#1F6F63"
+  default_prompt: "Use $creator-super-agent to create an isolated project and execute the full production pipeline."
+policy:
+  allow_implicit_invocation: true
