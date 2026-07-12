@@ -7,12 +7,24 @@ const ACCOUNT_PROFILE = {
   platform: "bilibili",
   accountName: "新锐纪元企划",
   authorName: "和平莱茵兔",
-  homepage: "https://b23.tv/R27c6fR",
+  homepage: "<ACCOUNT_URL>",
   positioning: "东方战术美少女、近未来、反战人文、林小队群像、战术科幻与中国式人文"
 };
 
 const PHOTOSHOP_PATH = "<ADOBE_ROOT>\\Adobe Photoshop 2021";
 const PREMIERE_PATH = "<ADOBE_ROOT>\\Adobe Premiere Pro 2022";
+
+function resolveAccountProfile(input = {}) {
+  const record = input.workspaceContext?.accountProfile || input.accountProfile || null;
+  if (!record) return { ...ACCOUNT_PROFILE };
+  const profile = record.profile || record;
+  return {
+    ...ACCOUNT_PROFILE,
+    ...profile,
+    platform: record.platform || profile.platform || ACCOUNT_PROFILE.platform,
+    accountName: record.accountName || profile.accountName || ACCOUNT_PROFILE.accountName
+  };
+}
 
 function compact(value) {
   return String(value || "").replace(/\s+/g, " ").trim();
@@ -307,7 +319,7 @@ export function createWorkflowPlan(db, input = {}) {
   return {
     standard: "xinrui-creative-workflow-v1",
     goal,
-    accountProfile: ACCOUNT_PROFILE,
+    accountProfile: resolveAccountProfile(input),
     evidence: pickEvidence(evidence),
     dramaturgyReview,
     storyArrangement,
@@ -415,7 +427,7 @@ export function createBilibiliPublishingPlan(db, input = {}) {
   const tags = unique(["新锐纪元企划", "原创动画", "战术科幻", "二次元", "分镜", ...termsFromText(topic).slice(0, 4)]);
   return {
     standard: "xinrui-bilibili-publishing-v1",
-    accountProfile: ACCOUNT_PROFILE,
+    accountProfile: resolveAccountProfile(input),
     trendInputs: [
       "B站热门榜观察：题材、封面主体、标题问题感、视频时长、互动点",
       "同类动画/战术/二次元内容观察：高可读角色脸、明确动作、少字封面",
@@ -444,11 +456,17 @@ export function createDailyStoryBrief(db, input = {}) {
   const hotspot = compact(input.hotspot || "手动输入热点或从 B站热门榜观察获得");
   const query = `${topic} ${hotspot}`;
   const evidence = searchDatabase(db, [query], { limit: Number(input.limit || 8), mode: "precise" });
-  const publishing = createBilibiliPublishingPlan(db, { topic, script: hotspot, limit: input.limit });
+  const publishing = createBilibiliPublishingPlan(db, {
+    topic,
+    script: hotspot,
+    limit: input.limit,
+    workspaceContext: input.workspaceContext,
+    accountProfile: input.accountProfile
+  });
   return {
     standard: "xinrui-daily-story-brief-v1",
     date: new Date().toLocaleDateString("zh-CN"),
-    accountProfile: ACCOUNT_PROFILE,
+    accountProfile: resolveAccountProfile(input),
     hotspotMonitor: {
       mode: "manual_v1",
       sources: ["B站热门榜", "本地资料库故事线", "官网定位", "用户当天输入的热点"],
