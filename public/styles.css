@@ -847,3 +847,18 @@ button:disabled {
     flex-direction: column;
   }
 }
+
+body.generic-edition .rail > .panel:not(.agent-control-panel),
+body.generic-edition .content > .panel:not(.agent-console-panel):not(.llm-status-panel):not(.system-audit-panel):not(.stats-panel) {
+  display: none;
+}
+
+body.generic-edition .workspace {
+  grid-template-columns: minmax(320px, 0.82fr) minmax(420px, 1.18fr);
+}
+
+@media (max-width: 980px) {
+  body.generic-edition .workspace {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,32 +1,17 @@
 {
-  "name": "xinrui-ip-agent",
+  "name": "creator-super-agent-workbench",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "type": "module",
-  "description": "Local incremental IP database agent for Xinrui Era planning materials.",
+  "description": "Persistent full-pipeline creator agent workbench with cloud multimodal image generation.",
   "scripts": {
-    "init": "node --no-warnings src/cli.js init",
-    "sync": "node --no-warnings src/cli.js sync",
-    "update": "node --no-warnings src/cli.js sync",
-    "server": "node --no-warnings src/server.js",
     "start": "node --no-warnings src/server.js",
-    "stats": "node --no-warnings src/cli.js stats",
-    "search": "node --no-warnings src/cli.js search",
-    "ask": "node --no-warnings src/cli.js ask",
-    "entities": "node --no-warnings src/cli.js entities",
-    "export-site": "node --no-warnings src/cli.js export-site",
+    "server": "node --no-warnings src/server.js",
     "db:check": "node --no-warnings scripts/database_maintenance.mjs --check",
     "db:maintain": "node --no-warnings scripts/database_maintenance.mjs --apply",
     "test:openai-compat": "node --no-warnings scripts/openai_compat_smoke.mjs",
-    "test:api": "node --no-warnings scripts/workbench_api_smoke.mjs",
-    "test:pipeline": "node --no-warnings scripts/full_pipeline_e2e.mjs",
     "test:agent": "node --no-warnings scripts/agent_runtime_smoke.mjs",
-    "test:plugins": "node --no-warnings scripts/validate_codex_plugins.mjs",
-    "test:all": "npm run db:check && npm run test:openai-compat && npm run test:api && npm run test:pipeline",
-    "daily:xhs": "node --no-warnings scripts/daily_xhs_post.mjs",
-    "package:portable": "node --no-warnings scripts/export_portable_package.mjs",
-    "package:agents": "node --no-warnings scripts/export_agent_distributions.mjs",
-    "manifest:xinrui": "node --no-warnings scripts/build_content_pack_manifest.mjs --pack-id xinrui-private"
+    "test:plugins": "node --no-warnings scripts/validate_codex_plugins.mjs"
   },
   "dependencies": {
     "jszip": "^3.10.1"

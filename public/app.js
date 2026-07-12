@@ -1758,6 +1758,7 @@ async function loadRuntime() {
     };
   }
   if (config.edition === "generic") {
+    document.body.classList.add("generic-edition");
     document.title = "全流程创作超级智能体";
     if (appTitle) appTitle.textContent = "全流程创作超级智能体";
     if (storyStyle && /新锐纪元|战术美少女/.test(storyStyle.value)) {
@@ -1775,6 +1776,7 @@ async function loadRuntime() {
       if (element) element.placeholder = placeholder;
     }
   } else {
+    document.body.classList.remove("generic-edition");
     document.title = "新锐纪元 IP 数据库";
     if (appTitle) appTitle.textContent = "新锐纪元 IP 数据库";
   }
