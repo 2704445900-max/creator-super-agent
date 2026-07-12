@@ -336,7 +336,9 @@ export function resolveWorkspaceContext(db, input = {}) {
   const workspaceId = compact(input.workspaceId || (input.contentPackId === "xinrui-private" ? "xinrui-main" : "creator-default"));
   const workspace = getWorkspace(db, workspaceId) || listWorkspaces(db)[0] || null;
   const contentPack = workspace?.contentPackId ? getContentPack(db, workspace.contentPackId) : null;
-  const accountProfile = input.accountProfileId ? getAccountProfile(db, input.accountProfileId) : null;
+  const accountProfile = input.accountProfileId
+    ? getAccountProfile(db, input.accountProfileId)
+    : (workspace ? listAccountProfiles(db, workspace.id)[0] || null : null);
   return { workspace, contentPack, accountProfile };
 }
 
