@@ -967,19 +967,33 @@ async function handleApi(req, res, url) {
 
   if (req.method === "POST" && url.pathname === "/api/workflow/plan") {
     const body = await readJsonBody(req);
-    sendJson(res, 200, createWorkflowPlan(db, body));
+    const workspaceContext = resolveWorkspaceContext(db, {
+      ...body,
+      workspaceId: body.workspaceId || (config.edition === "generic" ? "creator-default" : "xinrui-main")
+    });
+    sendJson(res, 200, createWorkflowPlan(db, { ...body, workspaceContext }));
     return true;
   }
 
   if (req.method === "POST" && url.pathname === "/api/publishing/bilibili") {
     const body = await readJsonBody(req);
-    sendJson(res, 200, isGenericAgentInput(body) ? createGenericPublishingPlan(body) : createBilibiliPublishingPlan(db, body));
+    const workspaceContext = resolveWorkspaceContext(db, {
+      ...body,
+      workspaceId: body.workspaceId || (config.edition === "generic" ? "creator-default" : "xinrui-main")
+    });
+    sendJson(res, 200, isGenericAgentInput(body)
+      ? createGenericPublishingPlan(body)
+      : createBilibiliPublishingPlan(db, { ...body, workspaceContext }));
     return true;
   }
 
   if (req.method === "POST" && url.pathname === "/api/daily/story-brief") {
     const body = await readJsonBody(req);
-    sendJson(res, 200, createDailyStoryBrief(db, body));
+    const workspaceContext = resolveWorkspaceContext(db, {
+      ...body,
+      workspaceId: body.workspaceId || (config.edition === "generic" ? "creator-default" : "xinrui-main")
+    });
+    sendJson(res, 200, createDailyStoryBrief(db, { ...body, workspaceContext }));
     return true;
   }
 
