@@ -23,7 +23,7 @@ function detectTool(pathValue) {
 
 export function getPostproductionStatus() {
   return {
-    standard: "xinrui-postproduction-tool-status-v1",
+    standard: "creator-postproduction-tool-status-v1",
     checkedAt: nowIso(),
     tools: {
       photoshop: {
@@ -54,7 +54,7 @@ export function createRiggingWorkflowPlan(input = {}) {
   const purpose = compact(input.purpose || input.target || "AE 手书/展示型轻动画");
   const character = compact(input.character || "角色");
   return {
-    standard: "xinrui-rigging-ae-workflow-v1",
+    standard: "creator-rigging-ae-workflow-v1",
     character,
     purpose,
     coreDecision: [
@@ -101,15 +101,15 @@ export function createRiggingWorkflowPlan(input = {}) {
       "output/after-effects/",
       "output/projects/<project>/05_animation/ae/"
     ],
-    learnedFromLocalTest: "林荫清测试证明：互斥自动切层虽然能消除重叠，但会打断连续脸部/头发，AE运动后仍会出现裂缝；后续默认走连续底图方案。"
+    learnedFromLocalTest: "项目主角测试证明：互斥自动切层虽然能消除重叠，但会打断连续脸部/头发，AE运动后仍会出现裂缝；后续默认走连续底图方案。"
   };
 }
 
 export function createVideoProductionPlan(input = {}) {
-  const topic = compact(input.topic || input.title || "新锐纪元短片");
+  const topic = compact(input.topic || input.title || "当前项目短片");
   const format = compact(input.format || "手书/展示/MV型短片");
   return {
-    standard: "xinrui-video-production-plan-v1",
+    standard: "creator-video-production-plan-v1",
     topic,
     format,
     toolStatus: getPostproductionStatus(),
@@ -182,7 +182,7 @@ export function createVideoReviewPlan(input = {}) {
   const title = compact(input.title || input.topic || "待复盘成片");
   const platform = compact(input.platform || "B站");
   return {
-    standard: "xinrui-video-review-plan-v1",
+    standard: "creator-video-review-plan-v1",
     title,
     platform,
     requiredInputs: [
@@ -224,19 +224,19 @@ export function createVideoReviewPlan(input = {}) {
 export function createPortablePackagePlan() {
   ensureDir(PACKAGE_ROOT);
   const plan = {
-    standard: "xinrui-portable-package-plan-v1",
+    standard: "creator-portable-package-plan-v1",
     createdAt: nowIso(),
     packageRoot: PACKAGE_ROOT,
     include: [
-      "<USER_HOME>\\plugins\\xinrui-ip-studio",
+      "<USER_HOME>\\plugins\\creator-super-agent",
       "<WORKBENCH_ROOT>\\src",
       "<WORKBENCH_ROOT>\\public",
       "<WORKBENCH_ROOT>\\config",
       "<WORKBENCH_ROOT>\\package.json",
       "<WORKBENCH_ROOT>\\package-lock.json",
       "<WORKBENCH_ROOT>\\README.md",
-      "<WORKBENCH_ROOT>\\data\\xinrui-ip-agent.sqlite",
-      "<XINRUI_SOURCE_ROOT>（建议单独备份，体积可能很大）"
+      "<WORKBENCH_ROOT>\\data\\creator-ip-agent.sqlite",
+      "<CREATOR_SOURCE_ROOT>（建议单独备份，体积可能很大）"
     ],
     excludeByDefault: [
       "output/rigging/*.avi",
@@ -251,12 +251,12 @@ export function createPortablePackagePlan() {
       "运行 npm install。",
       "运行 npm run sync 重建本地资料索引。",
       "把插件目录复制到新电脑的用户 plugins 目录。",
-      "通过 Codex 个人插件入口重新安装 xinrui-ip-studio。",
+      "通过 Codex 个人插件入口重新安装 creator-super-agent。",
       "启动 npm run server，访问 http://127.0.0.1:8787。",
       "检查 Photoshop、AE、PR 路径；新电脑路径不同则在工作台设置中更新。"
     ],
     futureAutomation: {
-      archiveName: "xinrui-ip-studio-portable-YYYYMMDD.zip",
+      archiveName: "creator-super-agent-portable-YYYYMMDD.zip",
       manifestFile: "portable-manifest.json",
       integrity: "建议为数据库、插件和配置生成 sha256 清单"
     }
@@ -266,7 +266,7 @@ export function createPortablePackagePlan() {
   fs.writeFileSync(
     path.join(PACKAGE_ROOT, "README-portable.md"),
     [
-      "# 新锐纪元工作台迁移方案",
+      "# 当前项目工作台迁移方案",
       "",
       `生成时间：${plan.createdAt}`,
       "",

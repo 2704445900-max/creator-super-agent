@@ -21,9 +21,10 @@ const PIPELINE_STAGES = [
   { id: "dramaturgy", label: "剧本四层审查与文学拓展", endpoints: ["/api/dramaturgy/review", "/api/literature/expand"] },
   { id: "project", label: "项目建档与状态", endpoints: ["/api/projects/create", "/api/projects/status"] },
   { id: "assets", label: "美术资产与外部参考", endpoints: ["/api/assets/inventory", "/api/references/real-world-pack"] },
-  { id: "storyboard", label: "导演故事板与连续分镜", endpoints: ["/api/storyboards/generate", "/api/storyboards/:id/board"] },
-  { id: "image", label: "gpt-image 文生图与参考图编辑", endpoints: ["/api/pipeline/image-generate", "/api/pipeline/reference-image-generate"] },
-  { id: "visual_qa", label: "视觉自检与项目归档", endpoints: ["/api/pipeline/visual-check"] },
+  { id: "storyboard", label: "导演故事板、逐镜头提示词与确定性总板", endpoints: ["/api/storyboards/generate", "/api/storyboards/:id/board"] },
+  { id: "visual_design", label: "Prompt V2、色彩、风格与世界观视觉圣经", endpoints: ["/api/pipeline/prompt-refine", "/api/pipeline/visual-bible", "/api/aesthetic/style-library"] },
+  { id: "image", label: "Codex 原生 image-2 落盘与工作台 API 图像路线", endpoints: ["/api/pipeline/native-image/task", "/api/pipeline/native-image/import", "/api/pipeline/image-generate", "/api/pipeline/reference-image-generate"] },
+  { id: "visual_qa", label: "真实图片视觉自检、修复与项目归档", endpoints: ["/api/pipeline/visual-check", "/api/pipeline/native-image/repair", "/api/pipeline/visual-qa/diagnostics"] },
   { id: "video", label: "Seedance、AE、PR 与动效", endpoints: ["/api/pipeline/cost-estimate", "/api/postproduction/video-plan"] },
   { id: "publishing", label: "B站宣发、日更与复盘", endpoints: ["/api/publishing/bilibili", "/api/daily/story-brief"] },
   { id: "portable", label: "迁移打包", endpoints: ["/api/package/portable-plan", "/api/package/export"] }
@@ -142,20 +143,24 @@ export async function getSystemHealth(db, config) {
     && paths.databaseExists
     && paths.outputWritable;
   const paidImageReady = Boolean(image.openai?.canGenerateText || image.comfyui?.canExecute);
+  const nativeCodexImageWorkflowReady = paths.outputWritable;
+  const imageWorkflowReady = paidImageReady || nativeCodexImageWorkflowReady;
   const warnings = [
     ...(!llm.enabled ? ["大模型未配置，深度改写与语义增强使用本地规则 fallback。"] : []),
-    ...(!paidImageReady ? ["OpenAI Images 与 ComfyUI 当前均不可直接执行，工作台保持任务包模式。"] : []),
+    ...(!paidImageReady ? ["工作台 API 图像后端当前不可直接执行；Codex 原生 image-2 任务、落盘和视觉 QA 路线仍可用。"] : []),
     ...(!latestPipeline?.ok ? ["还没有通过的隔离全管线 E2E 报告。"] : [])
   ];
   return {
-    standard: "xinrui-system-health-v1",
+    standard: "creator-system-health-v1",
     createdAt: nowIso(),
-    status: coreReady ? (paidImageReady ? "ready" : "core_ready_external_backends_missing") : "degraded",
+    status: coreReady ? (imageWorkflowReady ? "ready" : "core_ready_external_backends_missing") : "degraded",
     readiness: {
       coreReady,
       localCreativePlanningReady: coreReady,
       llmReady: llm.enabled,
       paidImageReady,
+      nativeCodexImageWorkflowReady,
+      imageWorkflowReady,
       fullPipelineVerified: Boolean(latestPipeline?.ok)
     },
     paths,
@@ -191,7 +196,7 @@ export async function runFullPipelineCheck({ timeoutMs = 180000 } = {}) {
     cwd: PROJECT_ROOT,
     env: {
       ...process.env,
-      XINRUI_E2E_ROOT: runRoot
+      CREATOR_E2E_ROOT: runRoot
     },
     stdio: ["ignore", "pipe", "pipe"]
   });
@@ -209,7 +214,7 @@ export async function runFullPipelineCheck({ timeoutMs = 180000 } = {}) {
   clearTimeout(timer);
   const latest = getLatestFullPipelineReport();
   return {
-    standard: "xinrui-full-pipeline-check-run-v1",
+    standard: "creator-full-pipeline-check-run-v1",
     createdAt: nowIso(),
     ok: !timedOut && exitCode === 0 && Boolean(latest?.ok),
     exitCode,

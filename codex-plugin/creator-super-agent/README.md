@@ -1,6 +1,6 @@
 # Creator Super Agent
 
-Portable generic creator-agent plugin for the local workbench. It uses the `creator-generic` content pack and must not read the Xinrui private resource pack.
+Portable generic creator-agent plugin for the local workbench. It uses the `creator-generic` content pack and must not read a private project resource pack.
 
 Default runtime: `http://127.0.0.1:8787`.
 

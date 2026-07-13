@@ -219,7 +219,7 @@ export function planStoryboardTiming(input = {}) {
     };
 
   return {
-    standard: "xinrui-storyboard-timing-v1",
+    standard: "creator-storyboard-timing-v1",
     source: runtime.source,
     totalDurationSec,
     requestedShotCount: requestedShotCount ? Math.trunc(Number(requestedShotCount)) : null,

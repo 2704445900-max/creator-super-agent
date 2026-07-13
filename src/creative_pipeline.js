@@ -8,6 +8,8 @@ import { createResearchPlan } from "./research.js";
 import { searchDatabase } from "./search.js";
 import { ensureDir, nowIso } from "./utils.js";
 import { getIdentityReferencePolicy, identityReferenceRank, searchVisualAssets } from "./visual.js";
+import { buildImagePromptV2, persistVisualBibles } from "./visual_design_v2.js";
+import { buildVisualQaV2 } from "./visual_qa_v2.js";
 
 const PROJECT_ROOT = getProjectRoot();
 const OUTPUT_ROOT = getOutputRoot();
@@ -113,16 +115,16 @@ const COST_PROFILES = [
 ];
 
 const KNOWN_CHARACTERS = [
-  "林荫清",
+  "项目主角",
   "林小星",
-  "韩梦雪",
-  "唐舒嫣",
+  "项目角色A",
+  "项目角色B",
   "赵婧媛",
-  "赵婷婷",
-  "刘梦鸳",
-  "何墨缘",
-  "叶敏慧",
-  "李熙然"
+  "项目角色C",
+  "项目角色G",
+  "项目角色F",
+  "项目角色H",
+  "项目角色J"
 ];
 
 function compact(value) {
@@ -846,7 +848,7 @@ function buildLayeredVisualLock(db, input = {}, text = "", characters = []) {
 
   const items = mergeVisualItems([identityReferences, propReferences, sceneReferences, styleReferences]);
   return {
-    standard: "xinrui-layered-visual-lock-v1",
+    standard: "creator-layered-visual-lock-v1",
     lockOrder: [
       "1. exact character identity search",
       "2. character card / turnaround as primary identity anchors",
@@ -1096,7 +1098,7 @@ function buildPromptText(input, context, durationSec, shotCount) {
   const prompt = compact(input.prompt || input.shotPrompt || input.script || input.topic || "待细化分镜图");
   const style = compact(input.style || input.visualStyle || (generic
     ? "当前项目统一画风，电影感动画制作质量，主体清楚，材质和光色一致"
-    : "新锐纪元近未来东方战术美少女动画，半写实赛璐璐，电影感，克制真实"));
+    : "当前项目近未来东方战术美少女动画，半写实赛璐璐，电影感，克制真实"));
   const camera = compact(input.camera || input.shot?.camera || "35mm 或 50mm 电影镜头，中景到近景，动作和表情清楚");
   const scene = compact(input.sceneLock || input.scene || (generic
     ? "场景按当前项目资料和已批准外部参考锁定，缺失时先生成待设计任务"
@@ -1219,6 +1221,22 @@ function buildQualityGate(context, input = {}) {
     canGenerateDraft: true,
     blockingReasons: missing,
     rule: "角色卡/三视图、单一着装锁、甄别确认、道具、场景、服装或现实知识任一缺失时，只能生成草图或设计任务；正式成片分镜必须先补锁。"
+  };
+}
+
+function mergePromptQualityGate(qualityGate, promptSpec) {
+  const promptGate = promptSpec?.completeness || { score: 0, missing: ["prompt_v2"], canDraft: false, canFinal: false };
+  const blockingReasons = [
+    ...(qualityGate.blockingReasons || []),
+    ...(!promptGate.canFinal ? [`提示词 V2 完备度 ${promptGate.score}/100，正式生成门槛为 88；缺项：${(promptGate.missing || []).join("、") || "角色视觉锁未确认"}。`] : [])
+  ];
+  return {
+    ...qualityGate,
+    canGenerateDraft: Boolean(qualityGate.canGenerateDraft && promptGate.canDraft),
+    canGenerateFinal: Boolean(qualityGate.canGenerateFinal && promptGate.canFinal),
+    blockingReasons,
+    promptCompleteness: promptGate,
+    rule: `${qualityGate.rule} 提示词 V2 必须同时完成动作、空间、镜头、布光、色彩、动态张力、风格 DNA 和生成后断言。`
   };
 }
 
@@ -1411,12 +1429,19 @@ function visualCheckToMarkdown(result) {
     `- Seedance 正式：${result.boardDecision?.canEnterSeedanceFinal ? "可进入" : "不可进入"}`,
     `- 复核模式：${result.gate?.reviewMode || ""}`,
     `- QA 分数：${result.gate?.qaScore?.score ?? ""} / ${result.gate?.qaScore?.grade || ""}`,
+    `- QA V2 综合评分：${result.visualQaV2?.overallScore ?? "未完成真实图片复核"}`,
+    `- QA V2 状态：${result.visualQaV2?.gate?.status || ""}`,
     "",
     "## 必须修复",
     ...(result.boardDecision?.mustFixBeforeFinal?.length ? result.boardDecision.mustFixBeforeFinal.map((item) => `- ${item}`) : ["- 暂无必须修复项。"]),
     "",
     "## 检查清单",
     ...(result.checklist || []).map((item) => `- [ ] ${item.label || item.id}：${item.test || ""}；当前：${item.result || "unchecked"}；失败级别：${item.severityIfFailed || ""}`),
+    "",
+    "## QA V2 发现",
+    ...(result.visualQaV2?.findings?.length
+      ? result.visualQaV2.findings.map((item) => `- ${item.severity} / ${item.dimension} / ${item.location}：${item.issue}`)
+      : ["- 尚无结构化发现；必须先由 Codex/人工打开真实图片复核。"]),
     "",
     "## Photoshop 修复计划",
     ...(result.photoshopRepairPlan || []).map((item) => `- ${item}`),
@@ -1587,7 +1612,7 @@ function detectReferenceMode(input = {}, resolved = {}) {
 }
 
 function getImageProviderConfig() {
-  const selectedProvider = compact(process.env.IMAGE_PROVIDER || process.env.XINRUI_IMAGE_PROVIDER || "openai").toLowerCase();
+  const selectedProvider = compact(process.env.IMAGE_PROVIDER || process.env.CREATOR_IMAGE_PROVIDER || "openai").toLowerCase();
   const apiKey = process.env.IMAGE_API_KEY || process.env.OPENAI_API_KEY || "";
   const model = process.env.IMAGE_MODEL || process.env.OPENAI_IMAGE_MODEL || "gpt-image-2";
   const baseUrl = (process.env.IMAGE_BASE_URL || process.env.OPENAI_IMAGE_API_BASE || process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/+$/, "");
@@ -1653,7 +1678,7 @@ function getComfyUiConfig() {
       "启动 ComfyUI 后设置：",
       "COMFYUI_ENABLED=1",
       "COMFYUI_BASE_URL=http://127.0.0.1:8188",
-      "COMFYUI_IMG2IMG_WORKFLOW=config\\comfyui\\xinrui-img2img-sdxl-workflow_api.json",
+      "COMFYUI_IMG2IMG_WORKFLOW=config\\comfyui\\creator-img2img-sdxl-workflow_api.json",
       "可选：COMFYUI_OUTPUT_NODE_ID=<SaveImage 节点 ID>",
       "工作台会使用 /upload/image 上传参考图，并用 /prompt 提交 workflow。"
     ].join("\n")
@@ -1661,7 +1686,7 @@ function getComfyUiConfig() {
 }
 
 function getSelectedImageBackend(input = {}, providerConfig = {}, comfyConfig = {}) {
-  const requested = compact(input.imageProvider || input.provider || process.env.IMAGE_PROVIDER || process.env.XINRUI_IMAGE_PROVIDER || providerConfig.provider || "openai").toLowerCase();
+  const requested = compact(input.imageProvider || input.provider || process.env.IMAGE_PROVIDER || process.env.CREATOR_IMAGE_PROVIDER || providerConfig.provider || "openai").toLowerCase();
   if (["comfy", "comfyui", "controlnet", "local"].includes(requested)) return "comfyui";
   if (["openai", "gpt-image", "gpt-image-2", "gpt-image-1"].includes(requested)) return "openai";
   if (comfyConfig.enabled && requested !== "openai") return "comfyui";
@@ -1709,9 +1734,22 @@ export async function getImageGenerationDiagnostics() {
     comfyuiError = error.message;
   }
   return {
-    standard: "xinrui-image-generation-diagnostics-v2",
+    standard: "creator-image-generation-diagnostics-v2",
     createdAt: nowIso(),
+    defaultExecutionMode: "codex_native",
     selectedProvider,
+    codexNative: {
+      provider: "codex_native",
+      model: "gpt-image-2",
+      enabled: true,
+      taskBridgeReady: true,
+      imageCapability: "host-managed",
+      requiresWorkbenchApiKey: false,
+      taskEndpoint: "/api/pipeline/native-image/task",
+      importEndpoint: "/api/pipeline/native-image/import",
+      repairEndpoint: "/api/pipeline/native-image/repair",
+      executionPolicy: "在 Codex/ChatGPT 提供内置图像能力时，由宿主调用 image_gen，并将结果版本化导入工作台；工作台不保存该宿主的 API Key。"
+    },
     openai: {
       ...publicImageProviderConfig(openai),
       canGenerateText: openai.enabled,
@@ -1728,6 +1766,14 @@ export async function getImageGenerationDiagnostics() {
       endpoints: ["/system_stats", "/upload/image", "/prompt", "/history/{prompt_id}", "/view"]
     },
     capabilities: [
+      {
+        id: "codex_native_image",
+        label: "Codex 内置 gpt-image-2",
+        provider: "codex_native",
+        ready: true,
+        readiness: "host-managed",
+        endpoint: "/api/pipeline/native-image/task"
+      },
       {
         id: "text_to_image",
         label: "gpt-image-2 文生图",
@@ -1751,14 +1797,14 @@ export async function getImageGenerationDiagnostics() {
       }
     ],
     recommendation: openai.enabled
-      ? `OpenAI gpt-image 图像接口已具备配置条件，可执行文生图和参考图编辑；当前默认模型：${openai.model}。`
+      ? `在 Codex 中优先使用内置 gpt-image-2；OpenAI 图像 API 也已配置，可在明确选择直接 API 路线时执行。当前 API 模型：${openai.model}。`
       : comfyui.enabled && comfyuiReachable && comfyWorkflowExists && comfyui.checkpointExists
-        ? "ComfyUI 已可访问，workflow 和 checkpoint 均已就绪，可执行本地图生图。"
+        ? "在 Codex 中优先使用内置 gpt-image-2；ComfyUI 也已就绪，可作为本地图生图或精确参考图控制后端。"
         : comfyui.enabled && comfyuiReachable && comfyWorkflowExists && !comfyui.checkpointExists
-          ? `ComfyUI 服务已可访问，但缺少 checkpoint：${comfyui.checkpoint}。请放入任一模型目录的 checkpoints 子文件夹。`
+          ? `Codex 内置 gpt-image-2 任务桥可用；ComfyUI 服务可访问，但缺少 checkpoint：${comfyui.checkpoint}。`
           : comfyui.enabled && comfyWorkflowExists
-            ? "ComfyUI workflow 已配置，但 8188 暂不可访问；请先启动本地 ComfyUI 后端。"
-            : "当前先使用任务包模式：锁定参考图、写出提示词和 QA，再配置 OpenAI 或 ComfyUI 后执行。"
+            ? "Codex 内置 gpt-image-2 任务桥可用；ComfyUI workflow 已配置，但本地服务暂不可访问。"
+            : "默认使用 Codex 内置 image_gen / gpt-image-2：先创建任务包，由 Codex 生图，再版本化导入并执行视觉 QA。无需为该路线在工作台额外配置 API Key。"
   };
 }
 
@@ -1851,7 +1897,7 @@ function buildTextImagePrompt(input = {}, context = {}) {
   const propLocks = visualLock.propReferences || [];
   const sceneLocks = visualLock.sceneReferences || [];
   return [
-    "Create one finished Xinrui Era IP production illustration, semi-realistic anime cel shading, cinematic composition, clean readable forms and controlled detail.",
+    "Create one finished project-specific IP production illustration, semi-realistic anime cel shading, cinematic composition, clean readable forms and controlled detail.",
     `Primary intent: ${compact(input.prompt || input.intent || input.topic || input.script)}`,
     context.characters?.length ? `Characters: ${context.characters.join(", ")}` : "",
     identityLocks.length
@@ -1959,7 +2005,7 @@ function buildImageEditPrompt(input = {}, context = {}) {
   }[referenceMode] || "Use the input image as a strict visual reference.";
   const projectLabel = isGenericWorkspace(input)
     ? "Create a finished production illustration for the current original project, cinematic and clean."
-    : "Create a finished Xinrui Era IP illustration, semi-realistic anime, cinematic but clean production art.";
+    : "Create a finished project-specific IP illustration, semi-realistic anime, cinematic but clean production art.";
   return [
     modeLine,
     projectLabel,
@@ -2106,7 +2152,7 @@ async function callComfyUiImageWorkflow(comfyConfig, input = {}, referenceImages
     uploadedReferences.push(await uploadComfyReferenceImage(comfyConfig, referenceImage));
   }
   const firstUpload = uploadedReferences[0];
-  const clientId = input.clientId || `xinrui-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const clientId = input.clientId || `creator-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const seed = Number(input.seed || Math.floor(Math.random() * 1000000000));
   const replacements = {
     prompt: editPrompt,
@@ -2221,8 +2267,20 @@ export async function createImageGenerationTask(db, input = {}) {
   const context = buildContext(db, input);
   const provider = getImageProviderConfig();
   const outputDir = buildImageGenerationTaskDirectory(input);
-  const generationPrompt = buildTextImagePrompt(input, context);
-  const qualityGate = buildQualityGate(context, input);
+  const visualLocks = summarizeVisualAssets(context.visualLock || context.visual, context.characters, context.text, input);
+  const promptV2 = buildImagePromptV2(input, {
+    characters: context.characters,
+    visualLocks,
+    dramaturgyReview: context.dramaturgyReview
+  });
+  const generationPrompt = promptV2.compiledPrompt || buildTextImagePrompt(input, context);
+  const qualityGate = mergePromptQualityGate(buildQualityGate(context, input), promptV2);
+  const visualBibleFiles = persistVisualBibles(input, {
+    promptSpec: promptV2,
+    colorBible: promptV2.colorBible,
+    styleDna: promptV2.styleDna,
+    worldVisualBible: promptV2.worldVisualBible
+  });
   const requestedExecution = input.execute === true || input.generate === true;
   const allowDraft = input.allowDraft === true || input.draft === true;
   const promptReady = Boolean(compact(input.prompt || input.intent || input.topic || input.script));
@@ -2234,7 +2292,7 @@ export async function createImageGenerationTask(db, input = {}) {
     ...(!qualityReady ? ["视觉锁尚未达到正式生成门槛；如只需要草稿，显式传入 allowDraft=true。"] : [])
   ];
   const result = {
-    standard: "xinrui-image-generation-task-v1",
+    standard: "creator-image-generation-task-v2",
     createdAt: nowIso(),
     topic: input.topic || input.title || "",
     projectSlug: input.projectSlug || "",
@@ -2250,6 +2308,11 @@ export async function createImageGenerationTask(db, input = {}) {
       allowDraft
     },
     generationPrompt,
+    promptV2,
+    colorBible: promptV2.colorBible,
+    styleDna: promptV2.styleDna,
+    worldVisualBible: promptV2.worldVisualBible,
+    visualBibleFiles,
     visualLock: context.visualLock,
     canonEvidence: context.canonEvidence,
     knowledgeNeeds: context.knowledgeNeeds,
@@ -2354,7 +2417,7 @@ function writeReferenceTaskFiles(outputDir, result) {
     "",
     "## 可自动替换的 workflow 占位符",
     "",
-    "- `{{prompt}}` / `{{positive_prompt}}`：新锐纪元精修后的正向提示词",
+    "- `{{prompt}}` / `{{positive_prompt}}`：当前项目精修后的正向提示词",
     "- `{{negative_prompt}}`：工作台负向提示词",
     "- `{{reference_image}}`：上传到 ComfyUI input 后的参考图文件名",
     "- `{{reference_subfolder}}` / `{{reference_type}}`：参考图子目录与类型",
@@ -2391,7 +2454,7 @@ export async function createReferenceImageGenerationTask(db, input = {}) {
     visualLock: context.visualLock
   });
   const result = {
-    standard: "xinrui-reference-image-generation-v1",
+    standard: "creator-reference-image-generation-v1",
     createdAt: nowIso(),
     topic: input.topic || input.title || "",
     projectSlug: input.projectSlug || "",
@@ -2466,12 +2529,24 @@ export function createStoryboardPromptOptimization(db, input = {}) {
   const shotCount = inferShotCount(input, durationSec);
   const context = buildContext(db, input);
   const visualLocks = summarizeVisualAssets(context.visualLock || context.visual, context.characters, context.text, input);
-  const image2Prompt = buildPromptText(input, context, durationSec, shotCount);
-  const qualityGate = buildQualityGate(context, input);
+  const legacyImage2Prompt = buildPromptText(input, context, durationSec, shotCount);
+  const promptV2 = buildImagePromptV2(input, {
+    characters: context.characters,
+    visualLocks,
+    dramaturgyReview: context.dramaturgyReview
+  });
+  const image2Prompt = promptV2.compiledPrompt || legacyImage2Prompt;
+  const qualityGate = mergePromptQualityGate(buildQualityGate(context, input), promptV2);
   const canonBoundary = buildCanonBoundary(input, context);
+  const visualBibleFiles = persistVisualBibles(input, {
+    promptSpec: promptV2,
+    colorBible: promptV2.colorBible,
+    styleDna: promptV2.styleDna,
+    worldVisualBible: promptV2.worldVisualBible
+  });
 
   return {
-    standard: isGenericWorkspace(input) ? "generic-single-storyboard-prompt-refine-v1" : "xinrui-single-storyboard-prompt-refine-v2",
+    standard: isGenericWorkspace(input) ? "generic-single-storyboard-prompt-refine-v2" : "creator-single-storyboard-prompt-refine-v3",
     createdAt: nowIso(),
     targetModel: input.targetModel || "image-2 storyboard + Seedance 2.0/2.5 video",
     targetDurationSec: durationSec,
@@ -2486,6 +2561,11 @@ export function createStoryboardPromptOptimization(db, input = {}) {
       brief: compact(input.prompt || input.shotPrompt || input.script || input.topic),
       canonBoundary,
       image2Prompt,
+      legacyImage2Prompt,
+      promptV2,
+      colorBible: promptV2.colorBible,
+      styleDna: promptV2.styleDna,
+      worldVisualBible: promptV2.worldVisualBible,
       negativePrompt: buildNegativePrompt(),
       continuityLocks: [
         "同一角色跨镜头使用同一身份参考、服装状态和道具位置。",
@@ -2499,7 +2579,18 @@ export function createStoryboardPromptOptimization(db, input = {}) {
       ]
     },
     image2ReadyGate: qualityGate,
-    selfCheck: buildSelfCheckItems()
+    selfCheck: buildSelfCheckItems(),
+    visualBibleFiles,
+    codexNativeExecution: {
+      preferred: true,
+      executionMode: "codex_native_image_gen",
+      workflow: [
+        "创建 /api/pipeline/native-image/task 任务包。",
+        "Codex 调用内置 image_gen / gpt-image-2。",
+        "从 $CODEX_HOME/generated_images 复制选中图片到项目目录。",
+        "调用 /api/pipeline/native-image/import 登记并进入视觉 QA V2。"
+      ]
+    }
   };
 }
 
@@ -2557,7 +2648,7 @@ export function estimateVideoGenerationCost(input = {}) {
   const recommendedProfile = COST_PROFILES.find((item) => item.id === "fal-seedance-2-fast-720p") || COST_PROFILES[0];
   const formalProfile = COST_PROFILES.find((item) => item.id === "fal-seedance-2-standard-720p") || COST_PROFILES[1] || recommendedProfile;
   const shotBudget = {
-    standard: "xinrui-shot-level-budget-v1",
+    standard: "creator-shot-level-budget-v1",
     basis: {
       targetDurationSec,
       shotCount,
@@ -2579,7 +2670,7 @@ export function estimateVideoGenerationCost(input = {}) {
   };
 
   return {
-    standard: "xinrui-seedance-cost-control-v1",
+    standard: "creator-seedance-cost-control-v1",
     createdAt: nowIso(),
     targetDurationSec,
     shotCount,
@@ -2638,8 +2729,16 @@ export function createStoryboardVisualInspectionPlan(db, input = {}) {
     promptRole: resolvedImage.promptRole
   } : null;
 
+  const visualLocks = summarizeVisualAssets(context.visualLock || context.visual, context.characters, context.text, input);
+  const promptV2 = buildImagePromptV2(input, {
+    characters: context.characters,
+    visualLocks,
+    dramaturgyReview: context.dramaturgyReview
+  });
+  const visualQaV2 = buildVisualQaV2(input, imageInfo, promptV2);
+  const canEnterFinal = Boolean(gate.canGenerateFinal && visualQaV2.gate.canEnterSeedanceFinal);
   const result = {
-    standard: "xinrui-storyboard-visual-inspection-v2",
+    standard: "creator-storyboard-visual-inspection-v3",
     createdAt: nowIso(),
     imageInfo,
     inspectionMode: imageExists
@@ -2647,15 +2746,22 @@ export function createStoryboardVisualInspectionPlan(db, input = {}) {
       : "未提供可读图片；先输出镜头自检规范和修复路线。",
     characters: context.characters,
     canonEvidence: buildScopedCanonEvidence(input, context),
-    visualLocks: summarizeVisualAssets(context.visualLock || context.visual, context.characters, context.text, input),
+    visualLocks,
+    promptV2,
+    visualQaV2,
     gate,
     boardDecision: {
       status: gate.status,
       label: gate.label,
       canEnterImage2: gate.canGenerateDraft,
-      canEnterSeedanceDraft: gate.canGenerateDraft,
-      canEnterSeedanceFinal: gate.canGenerateFinal,
-      mustFixBeforeFinal: [...gate.blockers, ...gate.repair]
+      canEnterSeedanceDraft: Boolean(gate.canGenerateDraft && visualQaV2.gate.canEnterSeedanceDraft),
+      canEnterSeedanceFinal: canEnterFinal,
+      mustFixBeforeFinal: [
+        ...gate.blockers,
+        ...gate.repair,
+        ...(visualQaV2.gate.blockers || []),
+        ...(visualQaV2.findings || []).map((item) => `${item.location}: ${item.issue}`)
+      ]
     },
     checklist: buildSelfCheckItems().map((item) => ({
       ...item,
@@ -2684,7 +2790,9 @@ export function createStoryboardVisualInspectionPlan(db, input = {}) {
       "武器或道具型号错误：浏览器和本地参考包核验后重生。",
       "180度轴线破坏连续性：重新编排镜头。",
       "场景和平面图矛盾：先改场景设定。"
-    ]
+    ],
+    automaticRepair: visualQaV2.automaticRepair,
+    repairPlan: visualQaV2.repairPlan
   };
   if (imageExists || input.persistReport) {
     result.reportFiles = persistVisualCheckReport(result, input);
@@ -2768,7 +2876,7 @@ export function createAutonomousCreativeExecutionPlan(db, input = {}) {
   ];
 
   return {
-    standard: "xinrui-autonomous-creative-pipeline-v2",
+    standard: "creator-autonomous-creative-pipeline-v2",
     createdAt: nowIso(),
     explicitCreativeCommand: explicit,
     executionPolicy: {
@@ -2797,7 +2905,7 @@ export function createDetailedCreativePlan(db, input = {}) {
   const costEstimate = estimateVideoGenerationCost(input);
 
   return {
-    standard: "xinrui-detailed-creative-plan-v2",
+    standard: "creator-detailed-creative-plan-v2",
     createdAt: nowIso(),
     topic: input.topic || input.title || "未命名创作方案",
     creativePlan: {

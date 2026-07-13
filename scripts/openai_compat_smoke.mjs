@@ -10,12 +10,12 @@ const defaultConfig = JSON.parse(fs.readFileSync(path.join(projectRoot, "config"
 const sourceDatabase = path.resolve(projectRoot, defaultConfig.databasePath);
 const stamp = new Date().toISOString().replace(/[:.]/g, "-");
 const runRoot = path.resolve(
-  process.env.XINRUI_COMPAT_ROOT || path.join(projectRoot, "output", "maintenance", "openai-compat", stamp)
+  process.env.CREATOR_COMPAT_ROOT || path.join(projectRoot, "output", "maintenance", "openai-compat", stamp)
 );
 const isolatedOutputRoot = path.join(runRoot, "workbench-output");
-const isolatedDatabase = path.join(runRoot, "data", "xinrui-openai-compat.sqlite");
-const workbenchPort = Number(process.env.XINRUI_COMPAT_TEST_PORT || 18787);
-const mockPort = Number(process.env.XINRUI_COMPAT_MOCK_PORT || 18788);
+const isolatedDatabase = path.join(runRoot, "data", "creator-openai-compat.sqlite");
+const workbenchPort = Number(process.env.CREATOR_COMPAT_TEST_PORT || 18787);
+const mockPort = Number(process.env.CREATOR_COMPAT_MOCK_PORT || 18788);
 const workbenchBase = `http://127.0.0.1:${workbenchPort}`;
 const mockBase = `http://127.0.0.1:${mockPort}/v1`;
 const onePixelPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl2nQAAAABJRU5ErkJggg==";
@@ -142,10 +142,10 @@ const child = spawn(process.execPath, ["--no-warnings", "src/server.js"], {
     ...process.env,
     HOST: "127.0.0.1",
     PORT: String(workbenchPort),
-    XINRUI_TEST_MODE: "1",
-    XINRUI_DATABASE_PATH: isolatedDatabase,
-    XINRUI_OUTPUT_ROOT: isolatedOutputRoot,
-    XINRUI_SOURCE_ROOT: defaultConfig.sourceRoot,
+    CREATOR_TEST_MODE: "1",
+    CREATOR_DATABASE_PATH: isolatedDatabase,
+    CREATOR_OUTPUT_ROOT: isolatedOutputRoot,
+    CREATOR_SOURCE_ROOT: defaultConfig.sourceRoot,
     LLM_PROVIDER: "openai",
     LLM_API_MODE: "auto",
     LLM_BASE_URL: mockBase,
@@ -204,10 +204,12 @@ try {
     })
   });
 
-  assert(diagnostics.standard === "xinrui-llm-diagnostics-v2", "LLM diagnostics did not upgrade to v2");
+  assert(diagnostics.standard === "creator-llm-diagnostics-v2", "LLM diagnostics did not upgrade to v2");
   assert(responsesTest.ok && responsesTest.endpointUsed === "/responses", "Responses API path failed");
   assert(fallbackTest.ok && fallbackTest.endpointUsed === "/chat/completions", "Chat Completions fallback failed");
-  assert(imageDiagnostics.standard === "xinrui-image-generation-diagnostics-v2", "image diagnostics did not upgrade to v2");
+  assert(imageDiagnostics.standard === "creator-image-generation-diagnostics-v2", "image diagnostics did not upgrade to v2");
+  assert(imageDiagnostics.defaultExecutionMode === "codex_native", "Codex native image mode is not the default");
+  assert(imageDiagnostics.codexNative?.taskBridgeReady === true, "Codex native image task bridge is not ready");
   assert(imageDiagnostics.openai?.canGenerateText === true, "OpenAI text-to-image readiness missing");
   assert(imageGeneration.gate?.status === "generated_review_required", "text-to-image execution did not complete");
   assert(imageGeneration.output?.outputPath && fs.existsSync(imageGeneration.output.outputPath), "text-to-image output file missing");
@@ -215,7 +217,7 @@ try {
   assert(imageEdit.output?.outputPath && fs.existsSync(imageEdit.output.outputPath), "image edit output file missing");
 
   report = {
-    standard: "xinrui-openai-compat-smoke-v1",
+    standard: "creator-openai-compat-smoke-v1",
     createdAt: new Date().toISOString(),
     ok: true,
     runRoot,
@@ -238,7 +240,7 @@ try {
   };
 } catch (error) {
   report = {
-    standard: "xinrui-openai-compat-smoke-v1",
+    standard: "creator-openai-compat-smoke-v1",
     createdAt: new Date().toISOString(),
     ok: false,
     runRoot,

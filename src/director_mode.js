@@ -158,7 +158,7 @@ export function buildDirectorShot(project, shot, promptSpec, options, index) {
 
 export function getDirectorStandard() {
   return {
-    name: "xinrui-director-storyboard-v2",
+    name: "creator-director-storyboard-v2",
     targetModels: ["Seedance 2.0", "general image-to-video", "text-to-video storyboard"],
     requiredFields: [
       "durationSec",

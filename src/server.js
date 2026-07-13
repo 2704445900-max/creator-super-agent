@@ -50,6 +50,13 @@ import {
   getCostProfiles
 } from "./creative_pipeline.js";
 import {
+  createCodexNativeImageTask,
+  createCodexNativeRepairTask,
+  importCodexNativeImage
+} from "./native_image_bridge.js";
+import { getAestheticStyleLibrary } from "./visual_design_v2.js";
+import { getVisualQaV2Diagnostics } from "./visual_qa_v2.js";
+import {
   createCreativeSuitePlan,
   getCreativePluginSuite
 } from "./creative_suite.js";
@@ -123,7 +130,7 @@ syncContentPacks(db, { edition: config.edition });
 
 const projectRoot = getProjectRoot();
 const publicRoot = path.join(projectRoot, "public");
-const showcaseRoot = path.join(projectRoot, "Claude本地会话", "新锐纪元企划-展示站");
+const showcaseRoot = path.join(projectRoot, "Claude本地会话", "当前项目-展示站");
 const host = process.env.HOST || config.server?.host || "0.0.0.0";
 const port = Number(process.env.PORT || config.server?.port || 8787);
 let syncInProgress = false;
@@ -331,9 +338,9 @@ function buildPromptRefineLlmPrompt(localPlan, body = {}) {
   return [
     generic
       ? "你是通用影视动画创作智能体的提示词总监。请只基于当前项目资料，二次优化本地生成的 gpt-image-2 / Seedance 分镜提示词。"
-      : "你是新锐纪元 IP 工作台的提示词总监。请在不改写正史的前提下，二次优化本地生成的 gpt-image-2 / Seedance 分镜提示词。",
+      : "你是当前项目 IP 工作台的提示词总监。请在不改写正史的前提下，二次优化本地生成的 gpt-image-2 / Seedance 分镜提示词。",
     generic
-      ? "必须遵守：不得调用或暗示任何新锐纪元私有资料；外部资料只作为参考；不要删除角色锁、道具锁、场景锁、180度轴线、视觉 QA 和成本闸门。"
+      ? "必须遵守：不得调用或暗示任何当前项目私有资料；外部资料只作为参考；不要删除角色锁、道具锁、场景锁、180度轴线、视觉 QA 和成本闸门。"
       : "必须遵守：本地资料库为正史；新设定只能标注为合理推断或待确认；不要删除角色锁、道具锁、场景锁、180度轴线、视觉 QA 和成本闸门。",
     "请返回严格 JSON，不要 Markdown。字段：image2Prompt, negativePrompt, directorNotes, continuityNotes, visualQaFocus, revisionReasons。",
     "",
@@ -367,7 +374,7 @@ async function enhancePromptPlanWithLlmIfAvailable(body, localPlan) {
     temperature: 0.25,
     system: generic
       ? "你是严谨的影视动画提示词编辑。只基于当前项目资料优化提示词，不得引入其他私有 IP 信息。"
-      : "你是严谨的新锐纪元 IP 提示词编辑。只基于给定资料优化提示词，不编造正史。"
+      : "你是严谨的当前项目 IP 提示词编辑。只基于给定资料优化提示词，不编造正史。"
   });
   if (!llm.enabled) {
     return {
@@ -479,9 +486,19 @@ function getAgentRuntime() {
         ...input,
         disableCanonSearch: isGenericAgentInput(input)
       }),
-      image: (input) => hasReferenceImageInput(input)
-        ? createReferenceImageGenerationTask(db, { ...input, execute: true, generate: true })
-        : createImageGenerationTask(db, { ...input, execute: true, generate: true }),
+      nativeImageTask: async (input) => createCodexNativeImageTask(
+        input,
+        await enhancePromptPlanWithLlmIfAvailable(input, createStoryboardPromptOptimization(db, input))
+      ),
+      image: (input) => input.imageExecutionMode === "codex_native"
+        ? importCodexNativeImage({
+          ...input,
+          taskDirectory: input.nativeImageTask?.outputDir || input.taskDirectory,
+          sourceImagePath: input.sourceImagePath || input.imagePath
+        })
+        : hasReferenceImageInput(input)
+          ? createReferenceImageGenerationTask(db, { ...input, execute: true, generate: true })
+          : createImageGenerationTask(db, { ...input, execute: true, generate: true }),
       visualQa: (input) => createStoryboardVisualInspectionPlan(db, { ...input, persistReport: true }),
       visualReview: (input) => createStoryboardVisualInspectionPlan(db, {
         ...input,
@@ -590,6 +607,8 @@ async function handleApi(req, res, url) {
       contentPacks: listContentPacks(db),
       imagePolicy: {
         priority: "cloud-multimodal-first",
+        executionMode: "codex_native",
+        nativeWorkflow: "Codex built-in image_gen / gpt-image-2 -> versioned local import -> visual QA V2",
         defaultProvider: "openai",
         defaultModel: process.env.OPENAI_IMAGE_MODEL || process.env.IMAGE_MODEL || "gpt-image-2",
         compatible: ["ChatGPT/OpenAI Images", "OpenAI-compatible image-capable multimodal models"],
@@ -817,7 +836,7 @@ async function handleApi(req, res, url) {
   if (req.method === "GET" && url.pathname === "/api/dramaturgy/rules") {
     const library = getDramaturgyRuleLibrary();
     if (url.searchParams.get("format") === "markdown") {
-      sendMarkdown(res, 200, dramaturgyRuleLibraryToMarkdown(library), "xinrui-dramaturgy-rule-library.md");
+      sendMarkdown(res, 200, dramaturgyRuleLibraryToMarkdown(library), "creator-dramaturgy-rule-library.md");
       return true;
     }
     sendJson(res, 200, { library });
@@ -833,7 +852,7 @@ async function handleApi(req, res, url) {
       characters: body.characters
     });
     if (url.searchParams.get("format") === "markdown") {
-      sendMarkdown(res, 200, dramaturgyReviewToMarkdown(review), "xinrui-dramaturgy-review.md");
+      sendMarkdown(res, 200, dramaturgyReviewToMarkdown(review), "creator-dramaturgy-review.md");
       return true;
     }
     sendJson(res, 200, { review });
@@ -924,10 +943,66 @@ async function handleApi(req, res, url) {
     return true;
   }
 
+  if (req.method === "GET" && url.pathname === "/api/pipeline/visual-qa/diagnostics") {
+    sendJson(res, 200, getVisualQaV2Diagnostics());
+    return true;
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/aesthetic/style-library") {
+    sendJson(res, 200, getAestheticStyleLibrary());
+    return true;
+  }
+
   if (req.method === "POST" && url.pathname === "/api/pipeline/prompt-refine") {
     const body = await readJsonBody(req);
     const localPlan = createStoryboardPromptOptimization(db, body);
     sendJson(res, 200, await enhancePromptPlanWithLlmIfAvailable(body, localPlan));
+    return true;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/pipeline/visual-bible") {
+    const body = await readJsonBody(req);
+    const plan = await enhancePromptPlanWithLlmIfAvailable(body, createStoryboardPromptOptimization(db, body));
+    sendJson(res, 200, {
+      standard: "creator-visual-bible-bundle-v1",
+      createdAt: new Date().toISOString(),
+      promptV2: plan.refinedPrompt?.promptV2,
+      colorBible: plan.refinedPrompt?.colorBible,
+      styleDna: plan.refinedPrompt?.styleDna,
+      worldVisualBible: plan.refinedPrompt?.worldVisualBible,
+      files: plan.visualBibleFiles,
+      image2ReadyGate: plan.image2ReadyGate
+    });
+    return true;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/pipeline/native-image/task") {
+    const body = await readJsonBody(req);
+    const plan = await enhancePromptPlanWithLlmIfAvailable(body, createStoryboardPromptOptimization(db, body));
+    sendJson(res, 200, createCodexNativeImageTask(body, plan));
+    return true;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/pipeline/native-image/import") {
+    const body = await readJsonBody(req);
+    const imported = importCodexNativeImage(body);
+    const visualCheck = createStoryboardVisualInspectionPlan(db, {
+      ...body,
+      imagePath: imported.outputPath,
+      persistReport: true
+    });
+    sendJson(res, 200, {
+      standard: "creator-codex-native-image-import-v1",
+      imported,
+      visualCheck,
+      nextAction: "Codex 必须打开 imported.outputPath，提交 visualReview 结构后再次调用 /api/pipeline/visual-check。"
+    });
+    return true;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/pipeline/native-image/repair") {
+    const body = await readJsonBody(req);
+    sendJson(res, 200, createCodexNativeRepairTask(body));
     return true;
   }
 
@@ -989,7 +1064,7 @@ async function handleApi(req, res, url) {
     const body = await readJsonBody(req);
     const workspaceContext = resolveWorkspaceContext(db, {
       ...body,
-      workspaceId: body.workspaceId || (config.edition === "generic" ? "creator-default" : "xinrui-main")
+      workspaceId: body.workspaceId || (config.edition === "generic" ? "creator-default" : "creator-default")
     });
     sendJson(res, 200, createWorkflowPlan(db, { ...body, workspaceContext }));
     return true;
@@ -999,7 +1074,7 @@ async function handleApi(req, res, url) {
     const body = await readJsonBody(req);
     const workspaceContext = resolveWorkspaceContext(db, {
       ...body,
-      workspaceId: body.workspaceId || (config.edition === "generic" ? "creator-default" : "xinrui-main")
+      workspaceId: body.workspaceId || (config.edition === "generic" ? "creator-default" : "creator-default")
     });
     sendJson(res, 200, isGenericAgentInput(body)
       ? createGenericPublishingPlan(body)
@@ -1011,7 +1086,7 @@ async function handleApi(req, res, url) {
     const body = await readJsonBody(req);
     const workspaceContext = resolveWorkspaceContext(db, {
       ...body,
-      workspaceId: body.workspaceId || (config.edition === "generic" ? "creator-default" : "xinrui-main")
+      workspaceId: body.workspaceId || (config.edition === "generic" ? "creator-default" : "creator-default")
     });
     sendJson(res, 200, createDailyStoryBrief(db, { ...body, workspaceContext }));
     return true;
@@ -1339,6 +1414,6 @@ const server = http.createServer(async (req, res) => {
 getAgentRuntime();
 
 server.listen(port, host, () => {
-  console.log(`${config.edition === "generic" ? "全流程创作超级智能体" : "新锐纪元 IP 数据库"}服务已启动：http://${host}:${port}`);
+  console.log(`${config.edition === "generic" ? "全流程创作超级智能体" : "当前项目 IP 数据库"}服务已启动：http://${host}:${port}`);
   console.log(`本机访问：http://127.0.0.1:${port}`);
 });

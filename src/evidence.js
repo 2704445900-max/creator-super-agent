@@ -7,7 +7,7 @@ const EVIDENCE_TYPES = [
   {
     type: "character_state",
     label: "角色状态",
-    pattern: /角色|人物|队内|定位|性格|情绪|成长|弧光|内心|关系|身份|职责|林荫清|韩梦雪|唐舒嫣|赵婷婷/
+    pattern: /角色|人物|队内|定位|性格|情绪|成长|弧光|内心|关系|身份|职责|项目主角|项目角色A|项目角色B|项目角色C/
   },
   {
     type: "action_event",
@@ -27,7 +27,7 @@ const EVIDENCE_TYPES = [
   {
     type: "organization_world",
     label: "组织世界观",
-    pattern: /组织|阵营|法特提|古蒂斯|东方大国|势力|三纪元|世界观|计划|项目/
+    pattern: /组织|阵营|示例对手组织A|示例对手组织B|东方大国|势力|三纪元|世界观|计划|项目/
   },
   {
     type: "dramaturgy",
@@ -92,7 +92,7 @@ function scoreSentence(sentence, terms, title, path) {
     if (!token) continue;
     if (source.includes(token)) score += index === 0 ? 8 : 3;
   }
-  if (/林荫清|韩梦雪|唐舒嫣|赵婷婷|刘伊七|法特提|古蒂斯/.test(sentence)) score += 3;
+  if (/项目主角|项目角色A|项目角色B|项目角色C|项目角色D|示例对手组织A|示例对手组织B/.test(sentence)) score += 3;
   if (/任务|行动|定位|职责|场景|镜头|服装|武器|组织|世界观/.test(sentence)) score += 2;
   if (/目录|后记|第[一二三四五六七八九十\d]+章/.test(sentence)) score -= 1;
   return score;
@@ -142,7 +142,7 @@ function detectNoiseFlags(text, title, path) {
   if (/第[一二三四五六七八九十\d]+章|目录|后记|卷|幕/.test(source) && !/[。！？]/.test(source.slice(0, 160))) {
     flags.push("catalog_like");
   }
-  if (!/林荫清|韩梦雪|唐舒嫣|赵婷婷|刘伊七|法特提|古蒂斯|林小队|新锐/.test(`${source} ${title} ${path}`)) {
+  if (!/项目主角|项目角色A|项目角色B|项目角色C|项目角色D|示例对手组织A|示例对手组织B|当前项目团队|新锐/.test(`${source} ${title} ${path}`)) {
     flags.push("no_named_subject");
   }
   if (/(.{12,})\1/.test(source)) flags.push("possible_repeat");

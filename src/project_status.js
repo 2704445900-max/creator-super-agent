@@ -369,7 +369,7 @@ function readProjectStatus(projectPath) {
 export function listProjectStatuses() {
   if (!fs.existsSync(PROJECTS_ROOT)) {
     return {
-      standard: "xinrui-project-status-v1",
+      standard: "creator-project-status-v1",
       projectsRoot: PROJECTS_ROOT,
       items: []
     };
@@ -379,7 +379,7 @@ export function listProjectStatuses() {
     .map((entry) => readProjectStatus(path.join(PROJECTS_ROOT, entry.name)))
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   return {
-    standard: "xinrui-project-status-v1",
+    standard: "creator-project-status-v1",
     projectsRoot: PROJECTS_ROOT,
     items
   };
@@ -390,7 +390,7 @@ export function getProjectStatus(slug) {
   const projectPath = path.join(PROJECTS_ROOT, clean);
   if (!clean || !fs.existsSync(projectPath) || !fs.statSync(projectPath).isDirectory()) return null;
   return {
-    standard: "xinrui-project-status-v1",
+    standard: "creator-project-status-v1",
     projectsRoot: PROJECTS_ROOT,
     project: readProjectStatus(projectPath)
   };

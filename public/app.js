@@ -95,6 +95,8 @@ const pipelineTopicInput = document.querySelector("#pipelineTopicInput");
 const pipelinePromptInput = document.querySelector("#pipelinePromptInput");
 const pipelineScriptInput = document.querySelector("#pipelineScriptInput");
 const pipelineImagePathInput = document.querySelector("#pipelineImagePathInput");
+const pipelineNativeTaskDirectoryInput = document.querySelector("#pipelineNativeTaskDirectoryInput");
+const pipelineImageExecutionInput = document.querySelector("#pipelineImageExecutionInput");
 const pipelineReferenceImageInput = document.querySelector("#pipelineReferenceImageInput");
 const pipelineReferenceModeInput = document.querySelector("#pipelineReferenceModeInput");
 const pipelineReferenceExecuteInput = document.querySelector("#pipelineReferenceExecuteInput");
@@ -102,6 +104,10 @@ const pipelineDurationInput = document.querySelector("#pipelineDurationInput");
 const pipelineBudgetInput = document.querySelector("#pipelineBudgetInput");
 const pipelineShotCountInput = document.querySelector("#pipelineShotCountInput");
 const pipelineRouteInput = document.querySelector("#pipelineRouteInput");
+const pipelineLightingPresetInput = document.querySelector("#pipelineLightingPresetInput");
+const pipelineColorMoodInput = document.querySelector("#pipelineColorMoodInput");
+const pipelineStyleProfileInput = document.querySelector("#pipelineStyleProfileInput");
+const pipelineDynamicIntensityInput = document.querySelector("#pipelineDynamicIntensityInput");
 const pipelinePromptRefineButton = document.querySelector("#pipelinePromptRefineButton");
 const pipelineAutoExecuteButton = document.querySelector("#pipelineAutoExecuteButton");
 const pipelineCreativePlanButton = document.querySelector("#pipelineCreativePlanButton");
@@ -111,6 +117,10 @@ const pipelineImageGenerateButton = document.querySelector("#pipelineImageGenera
 const pipelineReferenceGenerateButton = document.querySelector("#pipelineReferenceGenerateButton");
 const pipelineImageDiagnosticsButton = document.querySelector("#pipelineImageDiagnosticsButton");
 const pipelineCreativeSuiteButton = document.querySelector("#pipelineCreativeSuiteButton");
+const pipelineVisualBibleButton = document.querySelector("#pipelineVisualBibleButton");
+const pipelineNativeImageTaskButton = document.querySelector("#pipelineNativeImageTaskButton");
+const pipelineNativeImageImportButton = document.querySelector("#pipelineNativeImageImportButton");
+const pipelineVisualQaDiagnosticsButton = document.querySelector("#pipelineVisualQaDiagnosticsButton");
 const pipelineStatus = document.querySelector("#pipelineStatus");
 const pipelineResult = document.querySelector("#pipelineResult");
 const agentRuntimeStatus = document.querySelector("#agentRuntimeStatus");
@@ -233,6 +243,12 @@ function renderAgentRun(run = null) {
   agentRunStatus.textContent = `${agentStatusLabel(run.status)}；步骤 ${Math.min(run.currentStep || 0, run.steps?.length || 0)}/${run.steps?.length || 0}`;
   const pendingApproval = (run.approvals || []).find((item) => item.status === "pending");
   const imagePath = run.state?.imagePath || "";
+  const nativeImageTask = run.state?.nativeImageTask || null;
+  const approvalButtonLabel = pendingApproval?.type === "paid_image_generation"
+    ? "批准生图并继续"
+    : pendingApproval?.type === "codex_native_image_generation"
+      ? "导入 Codex 图片并继续"
+      : "确认通过并继续";
   agentRunDetail.innerHTML = `
     <div class="agent-run-header">
       <div>
@@ -259,10 +275,22 @@ function renderAgentRun(run = null) {
         <strong>${escapeHtml(pendingApproval.request?.title || "等待审批")}</strong>
         <p>${escapeHtml(pendingApproval.request?.reason || "")}</p>
         ${pendingApproval.request?.model ? `<p class="item-meta">${escapeHtml(pendingApproval.request.provider || "")} / ${escapeHtml(pendingApproval.request.model)}</p>` : ""}
+        ${pendingApproval.type === "codex_native_image_generation" && pendingApproval.request?.task ? `
+          <p class="item-meta">任务目录：${escapeHtml(pendingApproval.request.task.outputDir || "")}</p>
+          <p class="item-meta">提示词文件：${escapeHtml(pendingApproval.request.task.files?.promptMarkdown || "")}</p>
+          <p>先由 Codex 原生 image-2 生成图片，再把图片路径填入“生成图 / 待检查图片路径”。</p>
+        ` : ""}
         <div class="button-row">
-          <button class="primary agent-action" type="button" data-agent-action="approve" data-agent-run-id="${escapeHtml(run.id)}" data-approval-id="${escapeHtml(pendingApproval.id)}" data-approval-type="${escapeHtml(pendingApproval.type)}">${pendingApproval.type === "paid_image_generation" ? "批准生图并继续" : "确认通过并继续"}</button>
+          <button class="primary agent-action" type="button" data-agent-action="approve" data-agent-run-id="${escapeHtml(run.id)}" data-approval-id="${escapeHtml(pendingApproval.id)}" data-approval-type="${escapeHtml(pendingApproval.type)}">${approvalButtonLabel}</button>
           <button class="agent-action" type="button" data-agent-action="reject" data-agent-run-id="${escapeHtml(run.id)}" data-approval-id="${escapeHtml(pendingApproval.id)}">拒绝并暂停</button>
         </div>
+      </div>
+    ` : ""}
+    ${nativeImageTask ? `
+      <div class="agent-output">
+        <strong>Codex 原生 image-2 任务</strong>
+        <p class="item-meta">${escapeHtml(nativeImageTask.outputDir || "")}</p>
+        <p class="item-meta">${escapeHtml(nativeImageTask.files?.promptMarkdown || "")}</p>
       </div>
     ` : ""}
     ${imagePath ? `
@@ -322,8 +350,8 @@ async function loadAgentConsole() {
   if (selected && agentWorkspaces.some((item) => item.id === selected)) {
     agentWorkspaceInput.value = selected;
   } else {
-    agentWorkspaceInput.value = agentWorkspaces.some((item) => item.id === "xinrui-main")
-      ? "xinrui-main"
+    agentWorkspaceInput.value = agentWorkspaces.some((item) => item.id === "creator-default")
+      ? "creator-default"
       : (agentWorkspaces[0]?.id || "");
   }
   agentRuntimeStatus.textContent = `${runtime.summary?.activeRuns || 0} 个运行中；图像 ${runtime.imagePolicy?.defaultModel || "gpt-image-2"}`;
@@ -338,7 +366,7 @@ async function startAgentRun() {
     agentRunStatus.textContent = "请先输入创作目标。";
     return;
   }
-  const workspaceId = agentWorkspaceInput?.value || "xinrui-main";
+  const workspaceId = agentWorkspaceInput?.value || "creator-default";
   const workspace = agentWorkspaces.find((item) => item.id === workspaceId);
   agentStartButton.disabled = true;
   agentRunStatus.textContent = "正在创建智能体任务。";
@@ -348,7 +376,7 @@ async function startAgentRun() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         workspaceId,
-        contentPackId: workspace?.contentPackId || "xinrui-private",
+        contentPackId: workspace?.contentPackId || "creator-generic",
         title: goal.slice(0, 80),
         topic: goal,
         goal,
@@ -360,6 +388,7 @@ async function startAgentRun() {
         budgetCny: Number(agentBudgetInput?.value || 0) || undefined,
         generateImages: Boolean(agentGenerateImagesInput?.checked),
         useLlm: Boolean(agentUseLlmInput?.checked),
+        imageExecutionMode: pipelineImageExecutionInput?.value || "codex_native",
         imageProvider: "openai",
         imageModel: agentImageModelInput?.value || undefined,
         requirePaidApproval: Boolean(agentRequirePaidApprovalInput?.checked),
@@ -388,8 +417,24 @@ async function handleAgentAction(button) {
     let run;
     if (action === "approve" || action === "reject") {
       const isPaid = button.dataset.approvalType === "paid_image_generation";
+      const isCodexNative = button.dataset.approvalType === "codex_native_image_generation";
       if (action === "approve" && isPaid && !window.confirm("确认调用云端图像模型？这一步可能消耗账户额度。")) return;
-      if (action === "approve" && !isPaid && !window.confirm("确认该生成图通过视觉终审并继续后续流程？")) return;
+      if (action === "approve" && isCodexNative && !pipelineImagePathInput?.value.trim()) {
+        window.alert("请先用 Codex 原生 image-2 生成图片，并把图片的本地路径填入“生成图 / 待检查图片路径”。");
+        pipelineImagePathInput?.focus();
+        return;
+      }
+      if (action === "approve" && isCodexNative && !window.confirm("确认导入这张 Codex 原生生成图，并进入真实图片视觉复核？")) return;
+      if (action === "approve" && !isPaid && !isCodexNative && !window.confirm("确认该生成图通过视觉终审并继续后续流程？")) return;
+      const approvalResponse = isPaid
+        ? { acknowledgedCost: true, approvedBy: "workbench-user" }
+        : isCodexNative
+          ? {
+              sourceImagePath: pipelineImagePathInput.value.trim(),
+              confirmedGeneratedByCodexNative: true,
+              approvedBy: "workbench-user"
+            }
+          : { confirmedPass: true, approvedBy: "workbench-user" };
       run = await getJson(`/api/agent/runs/${encodeURIComponent(runId)}/approve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -397,7 +442,7 @@ async function handleAgentAction(button) {
           approvalId: Number(button.dataset.approvalId || 0),
           decision: action === "approve" ? "approved" : "rejected",
           response: action === "approve"
-            ? (isPaid ? { acknowledgedCost: true, approvedBy: "workbench-user" } : { confirmedPass: true, approvedBy: "workbench-user" })
+            ? approvalResponse
             : { reason: "workbench-user rejected" }
         })
       });
@@ -988,7 +1033,7 @@ function renderWorkflowResult(payload = null, label = "结果") {
   workflowResult.innerHTML = `
     <article class="literature-block">
       <h3>账号定位</h3>
-      <p>${escapeHtml(payload.accountProfile?.accountName || "新锐纪元企划")} / ${escapeHtml(payload.accountProfile?.authorName || "和平莱茵兔")}</p>
+      <p>${escapeHtml(payload.accountProfile?.accountName || "当前项目")} / ${escapeHtml(payload.accountProfile?.authorName || "项目创作者")}</p>
       <p>${escapeHtml(payload.accountProfile?.positioning || "")}</p>
     </article>
     ${stages.length ? `
@@ -1127,7 +1172,7 @@ function renderGenericPlan(container, statusNode, payload = null, label = "已�
   container.innerHTML = `
     <article class="literature-block">
       <h3>摘要</h3>
-      <p>${escapeHtml(payload.standard || payload.project?.standard || "xinrui-plan")}</p>
+      <p>${escapeHtml(payload.standard || payload.project?.standard || "creator-plan")}</p>
       ${payload.project?.projectPath ? `<p>项目目录：${escapeHtml(payload.project.projectPath)}</p>` : ""}
       ${payload.packageRoot ? `<p>打包目录：${escapeHtml(payload.packageRoot)}</p>` : ""}
     </article>
@@ -1209,6 +1254,10 @@ function renderPipelinePlan(payload = null, label = "已生成") {
     pipelineStatus.textContent = "等待生成。";
     return;
   }
+  if (payload.board && Object.keys(payload).length === 1) {
+    renderPipelinePlan(payload.board, label);
+    return;
+  }
   pipelineResult.classList.remove("empty");
   pipelineStatus.textContent = label;
   const prompt = payload.refinedPrompt?.image2Prompt || payload.promptPlan?.refinedPrompt?.image2Prompt || payload.generationPrompt || "";
@@ -1224,14 +1273,21 @@ function renderPipelinePlan(payload = null, label = "已生成") {
   const checklist = payload.checklist || payload.visualCheck?.checklist || payload.selfCheck || [];
   const knowledgeNeeds = payload.knowledgeNeeds || [];
   const referencePack = payload.realWorldReferencePack || payload.promptPlan?.realWorldReferencePack || payload.referencePlan?.realWorldReferencePack || null;
-  const referenceImageTask = payload.standard === "xinrui-reference-image-generation-v1" ? payload : null;
-  const imageGenerationTask = payload.standard === "xinrui-image-generation-task-v1" ? payload : null;
-  const imageDiagnostics = /^xinrui-image-generation-diagnostics-v\d+$/.test(payload.standard || "") ? payload : null;
+  const referenceImageTask = payload.standard === "creator-reference-image-generation-v1" ? payload : null;
+  const imageGenerationTask = /^creator-image-generation-task-v\d+$/.test(payload.standard || "") ? payload : null;
+  const imageDiagnostics = /^creator-image-generation-diagnostics-v\d+$/.test(payload.standard || "") ? payload : null;
+  const nativeImageTask = payload.standard === "creator-codex-native-image-task-v1" ? payload : null;
+  const nativeImageImport = payload.standard === "creator-codex-native-image-import-v1" ? payload : null;
+  const visualBible = payload.standard === "creator-visual-bible-bundle-v1" ? payload : null;
+  const visualQaDiagnostics = payload.standard === "creator-visual-qa-diagnostics-v2" ? payload : null;
+  const promptV2 = payload.refinedPrompt?.promptV2 || payload.promptV2 || payload.promptPlan?.refinedPrompt?.promptV2 || null;
+  const visualQaV2 = payload.visualQaV2 || payload.visualCheck?.visualQaV2 || nativeImageImport?.visualCheck?.visualQaV2 || null;
+  const importedImagePath = nativeImageImport?.imported?.outputPath || "";
   const json = JSON.stringify(payload, null, 2);
   pipelineResult.innerHTML = `
     <article class="literature-block">
       <h3>摘要</h3>
-      <p>${escapeHtml(payload.standard || "xinrui-pipeline")}</p>
+      <p>${escapeHtml(payload.standard || "creator-pipeline")}</p>
       ${payload.targetDurationSec ? `<p>目标时长：${escapeHtml(payload.targetDurationSec)} 秒</p>` : ""}
       ${payload.plannedShotCount || payload.shotCount ? `<p>镜头规划：${escapeHtml(payload.plannedShotCount || payload.shotCount)} 镜头</p>` : ""}
       ${payload.budgetCny ? `<p>预算：${escapeHtml(payload.budgetCny)} RMB</p>` : ""}
@@ -1240,6 +1296,16 @@ function renderPipelinePlan(payload = null, label = "已生成") {
       <article class="literature-block">
         <h3>单帧 image-2 提示词</h3>
         <pre>${escapeHtml(prompt)}</pre>
+      </article>
+    ` : ""}
+    ${promptV2 ? `
+      <article class="literature-block">
+        <h3>Prompt V2 完整性</h3>
+        <p><strong>${escapeHtml(promptV2.completeness?.score ?? 0)} / 100</strong>；正式生成：${promptV2.completeness?.canFinal ? "通过" : "未通过"}</p>
+        ${(promptV2.completeness?.missing || []).length ? `<ul>${promptV2.completeness.missing.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : ""}
+        <p>布光：${escapeHtml(promptV2.lighting?.setup || promptV2.lighting?.preset || "")}</p>
+        <p>色彩：${escapeHtml([...(promptV2.colorBible?.base || []), ...(promptV2.colorBible?.accent || [])].join(" / "))}</p>
+        <p>风格 DNA：${escapeHtml((promptV2.styleDna?.promptDescriptors || []).join("；"))}</p>
       </article>
     ` : ""}
     ${gate ? `
@@ -1309,6 +1375,52 @@ function renderPipelinePlan(payload = null, label = "已生成") {
           <p>提示词：${escapeHtml(imageGenerationTask.files.promptMd || "")}</p>
           <p>QA：${escapeHtml(imageGenerationTask.files.qaMd || "")}</p>
         ` : ""}
+      </article>
+    ` : ""}
+    ${nativeImageTask ? `
+      <article class="literature-block">
+        <h3>Codex 原生 image-2 任务</h3>
+        <p><strong>${escapeHtml(nativeImageTask.status || "waiting_codex_native_generation")}</strong></p>
+        <p>任务目录：${escapeHtml(nativeImageTask.outputDir || "")}</p>
+        <p>预期落盘：${escapeHtml(nativeImageTask.expectedOutput || "")}</p>
+        <p>提示词文件：${escapeHtml(nativeImageTask.files?.promptMarkdown || "")}</p>
+        <p>下一步：使用 Codex 原生 image-2 生成图片，然后填写图片路径并点击“导入 Codex 图片”。</p>
+      </article>
+    ` : ""}
+    ${nativeImageImport ? `
+      <article class="literature-block">
+        <h3>Codex 图片已落盘</h3>
+        <p>版本：v${escapeHtml(String(nativeImageImport.imported?.version || 1).padStart(3, "0"))}</p>
+        <p>SHA-256：${escapeHtml(nativeImageImport.imported?.sha256 || "")}</p>
+        <p>输出图：${escapeHtml(importedImagePath)}</p>
+        ${importedImagePath ? `<img class="generated-image-preview" loading="lazy" src="/api/output-files?path=${encodeURIComponent(importedImagePath)}" alt="Codex 原生 image-2 落盘结果">` : ""}
+        <p>${escapeHtml(nativeImageImport.nextAction || "")}</p>
+      </article>
+    ` : ""}
+    ${visualBible ? `
+      <article class="literature-block">
+        <h3>视觉圣经</h3>
+        <p>色彩：${escapeHtml([...(visualBible.colorBible?.base || []), ...(visualBible.colorBible?.secondary || []), ...(visualBible.colorBible?.accent || [])].join(" / "))}</p>
+        <p>风格 DNA：${escapeHtml((visualBible.styleDna?.promptDescriptors || []).join("；"))}</p>
+        <p>世界观可视化：${escapeHtml(visualBible.worldVisualBible?.causalityRule || "")}</p>
+        ${visualBible.files ? `<p>保存目录：${escapeHtml(visualBible.files.root || Object.values(visualBible.files)[0] || "")}</p>` : ""}
+      </article>
+    ` : ""}
+    ${visualQaV2 ? `
+      <article class="literature-block">
+        <h3>视觉 QA V2</h3>
+        <p><strong>${escapeHtml(visualQaV2.gate?.status || "")}</strong>；综合评分：${escapeHtml(visualQaV2.overallScore ?? "待真实图片复核")}</p>
+        <p>真实图片已检查：${visualQaV2.actualImageReviewed ? "是" : "否"}；Seedance 正式：${visualQaV2.gate?.canEnterSeedanceFinal ? "允许" : "阻止"}</p>
+        ${(visualQaV2.findings || []).length ? `<ul>${visualQaV2.findings.map((item) => `<li>${escapeHtml(`${item.severity} / ${item.dimension} / ${item.location}：${item.issue}`)}</li>`).join("")}</ul>` : ""}
+      </article>
+    ` : ""}
+    ${visualQaDiagnostics ? `
+      <article class="literature-block">
+        <h3>视觉 QA 能力诊断</h3>
+        <p>Codex 真实图片复核：${visualQaDiagnostics.codexVisualReviewReady ? "就绪" : "未就绪"}</p>
+        <p>可选本地视觉侧车：${visualQaDiagnostics.optionalSidecar?.configured ? "已配置" : "未配置（不影响 Codex 复核）"}</p>
+        <p>${escapeHtml(visualQaDiagnostics.optionalSidecar?.rule || "")}</p>
+        <ul>${(visualQaDiagnostics.adapters || []).map((item) => `<li>${escapeHtml(`${item.name || item.id}：${item.status}`)}</li>`).join("")}</ul>
       </article>
     ` : ""}
     ${imageDiagnostics ? `
@@ -1763,7 +1875,7 @@ async function loadRuntime() {
     document.body.classList.add("generic-edition");
     document.title = "全流程创作超级智能体";
     if (appTitle) appTitle.textContent = "全流程创作超级智能体";
-    if (storyStyle && /新锐纪元|战术美少女/.test(storyStyle.value)) {
+    if (storyStyle && /当前项目|战术美少女/.test(storyStyle.value)) {
       storyStyle.value = "当前原创项目统一画风，电影感动画制作质量，角色表演清楚，光影和镜头连续";
     }
     const genericPlaceholders = [
@@ -1779,8 +1891,8 @@ async function loadRuntime() {
     }
   } else {
     document.body.classList.remove("generic-edition");
-    document.title = "新锐纪元 IP 数据库";
-    if (appTitle) appTitle.textContent = "新锐纪元 IP 数据库";
+    document.title = "当前项目 IP 数据库";
+    if (appTitle) appTitle.textContent = "当前项目 IP 数据库";
   }
   runtimeStatus.textContent = `${config.edition === "generic" ? "项目资料区" : "资料源"}：${config.sourceRoot}；大模型：${config.llm.enabled ? `${config.llm.provider}/${config.llm.model}` : "未启用，当前为证据检索与本地分镜草稿模式"}`;
   renderLlmStatus(config);
@@ -2080,7 +2192,18 @@ function renderCloudLibraryStatus(result = {}) {
   cloudSyncButton.hidden = false;
   cloudSyncButton.disabled = Boolean(result.running);
   if (result.running || result.state?.status === "running") {
-    cloudSyncStatus.textContent = `云端同步中：${result.state?.phase || "准备"}`;
+    const assetProgress = result.assetProgress;
+    if (assetProgress?.status === "running" && Number(assetProgress.totalFiles || 0) > 0) {
+      const phaseLabels = {
+        "hash-and-validate": "核验原件",
+        "copy-to-staging": "整理原件",
+        "commit-and-upload": "上传原件",
+        "commit-local": "保存原件清单"
+      };
+      cloudSyncStatus.textContent = `${phaseLabels[assetProgress.phase] || "备份原件"} ${assetProgress.completedFiles || 0}/${assetProgress.totalFiles}`;
+    } else {
+      cloudSyncStatus.textContent = `云端同步中：${result.state?.phase || "准备"}`;
+    }
     return;
   }
   if (result.state?.status === "failed") {
@@ -2090,9 +2213,10 @@ function renderCloudLibraryStatus(result = {}) {
   const files = result.localManifest?.files || result.state?.manifest?.files || 0;
   const approved = result.localManifest?.approvedAssets || result.state?.manifest?.approvedAssets || 0;
   const scheduled = result.schedule?.installed ? `每 ${result.schedule.intervalMinutes} 分钟` : "未定时";
+  const restoreVerified = result.remoteVerification?.result === "pass" ? " · 恢复抽检通过" : "";
   const ready = String(result.state?.status || "").startsWith("ready");
   cloudSyncStatus.textContent = ready
-    ? `${result.state?.status === "ready_remote_pending" ? "本地已更新，等待网络补推" : "云端已同步"} ${files} 项 · 原件获批 ${approved} · ${scheduled}`
+    ? `${result.state?.status === "ready_remote_pending" ? "本地已更新，等待网络补推" : "云端已同步"} ${files} 项 · 原件获批 ${approved} · ${scheduled}${restoreVerified}`
     : `云端待首次同步 · ${scheduled}`;
 }
 
@@ -2330,7 +2454,7 @@ async function buildPublishingPlan() {
 }
 
 async function buildDailyBrief() {
-  const topic = publishingTopic?.value.trim() || workflowTopic?.value.trim() || "新锐纪元企划日更故事";
+  const topic = publishingTopic?.value.trim() || workflowTopic?.value.trim() || "当前项目日更故事";
   const hotspot = publishingScript?.value.trim() || workflowScript?.value.trim() || storyScript?.value.trim();
   buildDailyBriefButton.disabled = true;
   workflowStatus.textContent = "正在生成日更简报...";
@@ -2380,6 +2504,9 @@ function getPipelineInput() {
     script,
     intent: topic,
     imagePath: pipelineImagePathInput?.value.trim() || "",
+    sourceImagePath: pipelineImagePathInput?.value.trim() || "",
+    taskDirectory: pipelineNativeTaskDirectoryInput?.value.trim() || "",
+    imageExecutionMode: pipelineImageExecutionInput?.value || "codex_native",
     referenceImagePath: pipelineReferenceImageInput?.value.trim() || pipelineImagePathInput?.value.trim() || "",
     referenceMode: pipelineReferenceModeInput?.value || "identity_lock",
     execute: Boolean(pipelineReferenceExecuteInput?.checked),
@@ -2388,8 +2515,13 @@ function getPipelineInput() {
     budgetCny: Number(pipelineBudgetInput?.value || 0) || undefined,
     shotCount: plannedShotCount,
     route: pipelineRouteInput?.value || "seedance-balanced",
+    lightingPreset: pipelineLightingPresetInput?.value || "cinematic-balanced",
+    colorMood: pipelineColorMoodInput?.value || "creator-cinematic",
+    styleProfile: pipelineStyleProfileInput?.value || "tactical-anime-industrial",
+    styleProfileIds: [pipelineStyleProfileInput?.value || "tactical-anime-industrial"],
+    dynamicIntensity: Number(pipelineDynamicIntensityInput?.value || 70),
     targetModel: directorTargetModel?.value.trim() || "Seedance 2.0",
-    style: storyStyle?.value.trim() || "新锐纪元近未来东方战术美少女动画，电影感，克制真实",
+    style: storyStyle?.value.trim() || "当前项目近未来东方战术美少女动画，电影感，克制真实",
     projectSlug: activeProjectSlug || undefined,
     limit: 8
   };
@@ -2399,8 +2531,8 @@ function hasPipelineInput(payload) {
   return Boolean(payload.topic || payload.prompt || payload.script || payload.imagePath);
 }
 
-async function runPipelineRequest(endpoint, button, statusText, doneText) {
-  const payload = getPipelineInput();
+async function runPipelineRequest(endpoint, button, statusText, doneText, overrides = {}) {
+  const payload = { ...getPipelineInput(), ...overrides };
   if (!hasPipelineInput(payload)) {
     pipelineStatus.textContent = "请先输入创作指令、提示词、脚本或待检查图片路径。";
     return null;
@@ -2448,8 +2580,62 @@ async function refinePipelinePrompt() {
     "/api/pipeline/prompt-refine",
     pipelinePromptRefineButton,
     "正在细化单帧分镜图提示词...",
-    "单帧提示词已细化。"
+    "单帧提示词已细化。",
+    { useLlm: false }
   );
+}
+
+async function buildVisualBible() {
+  await runPipelineRequest(
+    "/api/pipeline/visual-bible",
+    pipelineVisualBibleButton,
+    "正在生成色彩、风格与世界观视觉圣经...",
+    "视觉圣经已生成并归档。",
+    { useLlm: false }
+  );
+}
+
+async function createCodexNativeImageTaskFromWorkbench() {
+  const result = await runPipelineRequest(
+    "/api/pipeline/native-image/task",
+    pipelineNativeImageTaskButton,
+    "正在编译 Prompt V2 并创建 Codex 原生 image-2 任务...",
+    "Codex 原生 image-2 任务已创建。",
+    { useLlm: false }
+  );
+  if (result?.outputDir && pipelineNativeTaskDirectoryInput) {
+    pipelineNativeTaskDirectoryInput.value = result.outputDir;
+  }
+}
+
+async function importCodexNativeImageFromWorkbench() {
+  const sourceImagePath = pipelineImagePathInput?.value.trim() || "";
+  const taskDirectory = pipelineNativeTaskDirectoryInput?.value.trim() || "";
+  if (!sourceImagePath || !taskDirectory) {
+    pipelineStatus.textContent = "请先创建 Codex 生图任务，并填写 Codex 生成图的本地路径。";
+    return;
+  }
+  const result = await runPipelineRequest(
+    "/api/pipeline/native-image/import",
+    pipelineNativeImageImportButton,
+    "正在把 Codex 原生生成图版本化落盘并创建视觉 QA...",
+    "Codex 图片已落盘，等待真实图片视觉复核。"
+  );
+  const outputPath = result?.imported?.outputPath;
+  if (outputPath && pipelineImagePathInput) pipelineImagePathInput.value = outputPath;
+}
+
+async function runVisualQaDiagnostics() {
+  if (pipelineVisualQaDiagnosticsButton) pipelineVisualQaDiagnosticsButton.disabled = true;
+  pipelineStatus.textContent = "正在检查视觉 QA V2 能力...";
+  try {
+    const result = await getJson("/api/pipeline/visual-qa/diagnostics");
+    renderPipelinePlan(result, "视觉 QA V2 诊断完成。");
+  } catch (error) {
+    pipelineStatus.textContent = `视觉 QA 诊断失败：${error.message}`;
+  } finally {
+    if (pipelineVisualQaDiagnosticsButton) pipelineVisualQaDiagnosticsButton.disabled = false;
+  }
 }
 
 async function runAutonomousPipeline() {
@@ -2673,7 +2859,7 @@ async function buildResearchPlanForWorkbench() {
 }
 
 async function buildRiggingPlan() {
-  const topic = postTopicInput?.value.trim() || projectTitleInput?.value.trim() || "林荫清 AE 手书动画";
+  const topic = postTopicInput?.value.trim() || projectTitleInput?.value.trim() || "项目主角 AE 手书动画";
   buildRiggingPlanButton.disabled = true;
   postStatus.textContent = "正在生成 AE 拆图规范...";
   try {
@@ -2691,7 +2877,7 @@ async function buildRiggingPlan() {
 }
 
 async function buildVideoProductionPlan() {
-  const topic = postTopicInput?.value.trim() || projectTitleInput?.value.trim() || workflowTopic?.value.trim() || "新锐纪元短片";
+  const topic = postTopicInput?.value.trim() || projectTitleInput?.value.trim() || workflowTopic?.value.trim() || "当前项目短片";
   buildVideoPlanButton.disabled = true;
   postStatus.textContent = "正在生成视频制作管线...";
   try {
@@ -2778,6 +2964,10 @@ if (buildWorkflowButton) buildWorkflowButton.addEventListener("click", buildWork
 if (buildPublishingButton) buildPublishingButton.addEventListener("click", buildPublishingPlan);
 if (buildDailyBriefButton) buildDailyBriefButton.addEventListener("click", buildDailyBrief);
 if (pipelinePromptRefineButton) pipelinePromptRefineButton.addEventListener("click", refinePipelinePrompt);
+if (pipelineVisualBibleButton) pipelineVisualBibleButton.addEventListener("click", buildVisualBible);
+if (pipelineNativeImageTaskButton) pipelineNativeImageTaskButton.addEventListener("click", createCodexNativeImageTaskFromWorkbench);
+if (pipelineNativeImageImportButton) pipelineNativeImageImportButton.addEventListener("click", importCodexNativeImageFromWorkbench);
+if (pipelineVisualQaDiagnosticsButton) pipelineVisualQaDiagnosticsButton.addEventListener("click", runVisualQaDiagnostics);
 if (pipelineAutoExecuteButton) pipelineAutoExecuteButton.addEventListener("click", runAutonomousPipeline);
 if (pipelineCreativePlanButton) pipelineCreativePlanButton.addEventListener("click", buildDetailedCreativePlan);
 if (pipelineCreativeSuiteButton) pipelineCreativeSuiteButton.addEventListener("click", buildCreativeSuitePlan);

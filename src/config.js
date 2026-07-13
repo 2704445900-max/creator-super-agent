@@ -45,7 +45,7 @@ export function getProjectRoot() {
 
 export function getOutputRoot() {
   loadDotEnv();
-  return resolveProjectPath(process.env.CREATOR_OUTPUT_ROOT || process.env.XINRUI_OUTPUT_ROOT, path.join(PROJECT_ROOT, "output"));
+  return resolveProjectPath(process.env.CREATOR_OUTPUT_ROOT || process.env.CREATOR_OUTPUT_ROOT, path.join(PROJECT_ROOT, "output"));
 }
 
 export function getSourceRoot() {
@@ -54,7 +54,7 @@ export function getSourceRoot() {
   const requestedEdition = process.env.CREATOR_EDITION || config.edition || "combined";
   const genericDefault = path.join(PROJECT_ROOT, "content-packs", "creator-generic", "source");
   const fallback = requestedEdition === "generic" ? genericDefault : config.sourceRoot;
-  return resolveProjectPath(process.env.CREATOR_SOURCE_ROOT || process.env.XINRUI_SOURCE_ROOT, fallback);
+  return resolveProjectPath(process.env.CREATOR_SOURCE_ROOT || process.env.CREATOR_SOURCE_ROOT, fallback);
 }
 
 export function loadConfig(overrides = {}) {
@@ -68,15 +68,15 @@ export function loadConfig(overrides = {}) {
   const genericDatabase = path.join(PROJECT_ROOT, "data", "creator-agent.sqlite");
   merged.edition = genericEdition ? "generic" : requestedEdition;
   merged.sourceRoot = resolveProjectPath(
-    process.env.CREATOR_SOURCE_ROOT || process.env.XINRUI_SOURCE_ROOT,
+    process.env.CREATOR_SOURCE_ROOT || process.env.CREATOR_SOURCE_ROOT,
     genericEdition ? genericSource : merged.sourceRoot
   );
   merged.databasePath = resolveProjectPath(
-    process.env.CREATOR_DATABASE_PATH || process.env.XINRUI_DATABASE_PATH,
+    process.env.CREATOR_DATABASE_PATH || process.env.CREATOR_DATABASE_PATH,
     genericEdition ? genericDatabase : merged.databasePath
   );
   merged.outputRoot = getOutputRoot();
-  merged.testMode = process.env.XINRUI_TEST_MODE === "1";
+  merged.testMode = process.env.CREATOR_TEST_MODE === "1";
 
   merged.chunkSize = Number(merged.chunkSize || 900);
   merged.chunkOverlap = Number(merged.chunkOverlap || 120);

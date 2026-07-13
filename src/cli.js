@@ -42,7 +42,7 @@ function parseArgs(argv) {
 
 function printHelp() {
   console.log(`
-新锐纪元 IP 数据库智能体
+当前项目 IP 数据库智能体
 
 命令：
   init                         初始化数据库和种子设定
@@ -56,8 +56,8 @@ function printHelp() {
 示例：
   npm run init
   npm run sync
-  npm run search -- 林荫清
-  npm run ask -- 韩梦雪在队内是什么定位
+  npm run search -- 项目主角
+  npm run ask -- 项目角色A在队内是什么定位
   npm run export-site
 `);
 }

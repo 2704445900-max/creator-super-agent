@@ -1,4 +1,6 @@
-const STORYBOARD_STANDARD = "xinrui-storyboard-v1";
+import { buildImagePromptV2 } from "./visual_design_v2.js";
+
+const STORYBOARD_STANDARD = "creator-storyboard-v2";
 
 const DEFAULT_NEGATIVE_PROMPT = [
   "low quality",
@@ -116,6 +118,26 @@ function buildChecklist(shot, references) {
 export function buildShotPromptSpec(project, shot, visualReferences = []) {
   const references = referencesForShot(shot, visualReferences);
   const negativePrompt = compact(shot.negative_prompt) || DEFAULT_NEGATIVE_PROMPT;
+  const characters = shot.characters || [];
+  const promptV2 = buildImagePromptV2({
+    topic: project.title,
+    prompt: shot.storyboard_description || shot.scene_text,
+    scene: shot.scene_text,
+    action: shot.character_action,
+    camera: shot.camera,
+    composition: shot.composition,
+    style: project.style_prompt,
+    durationSec: shot.durationSec,
+    characters
+  }, {
+    characters,
+    visualLocks: {
+      characterDesignLocks: characters.map((character) => ({
+        character,
+        status: references.identity.some((item) => (item.subjectNames || []).includes(character)) ? "ready" : "missing_identity_reference"
+      }))
+    }
+  });
   return {
     standard: STORYBOARD_STANDARD,
     sceneIntent: compact(shot.scene_text),
@@ -156,7 +178,10 @@ export function buildShotPromptSpec(project, shot, visualReferences = []) {
         style: buildReferenceLine(references.style)
       }
     },
-    positivePrompt: buildPositivePrompt(project, shot, references),
+    positivePrompt: promptV2.compiledPrompt,
+    legacyPositivePrompt: buildPositivePrompt(project, shot, references),
+    promptV2,
+    promptCompleteness: promptV2.completeness,
     negativePrompt,
     controlHints: inferControlHints(shot, references),
     reviewChecklist: buildChecklist(shot, references)
@@ -170,6 +195,7 @@ export function getPromptStandard() {
       "sceneIntent",
       "continuity",
       "camera",
+      "promptV2",
       "referencePlan",
       "positivePrompt",
       "negativePrompt",

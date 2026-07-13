@@ -15,6 +15,7 @@ POST /api/agent/runs
   "durationSec": 15,
   "budgetCny": 100,
   "generateImages": true,
+  "imageExecutionMode": "codex_native",
   "imageProvider": "openai",
   "imageModel": "gpt-image-2",
   "requirePaidApproval": true,
@@ -22,6 +23,24 @@ POST /api/agent/runs
   "autoStart": true
 }
 ```
+
+## Complete a Codex native image step
+
+When the run pauses with `approval_type: "codex_native_image_generation"`, use the task prompt and references, call Codex built-in `image_gen`, then submit the generated local file path:
+
+```json
+POST /api/agent/runs/<id>/approve
+{
+  "approvalId": 1,
+  "decision": "approved",
+  "response": {
+    "sourceImagePath": "C:\\Users\\...\\generated.png",
+    "confirmedGeneratedByCodexNative": true
+  }
+}
+```
+
+The runtime imports the image into the project and continues to visual QA.
 
 ## Approve a paid image step
 

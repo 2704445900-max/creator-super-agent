@@ -218,7 +218,7 @@ function makeIssue(condition, layer, issue, fix, severity = "medium") {
 
 export function getDramaturgyRuleLibrary() {
   return {
-    standard: "xinrui-dramaturgy-rule-library-v1",
+    standard: "creator-dramaturgy-rule-library-v1",
     sourceRoot: SOURCE_ROOT,
     primarySource: "叙事教学的四个层次2.docx",
     supportingSources: [
@@ -294,7 +294,7 @@ export function analyzeScriptWithDramaturgy(input = {}) {
   ];
 
   const review = {
-    standard: "xinrui-dramaturgy-review-v1",
+    standard: "creator-dramaturgy-review-v1",
     sourcePriority: ["叙事教学的四个层次2.docx", "叙事教学的四个层次.docx", "时间矢量元素 示例对照表doc(1).doc", "逻辑自洽以及对待旧世界态度 对照表(1).doc"],
     input: {
       textLength: text.length,
@@ -373,7 +373,7 @@ export function analyzeScriptWithDramaturgy(input = {}) {
 
 export function dramaturgyRuleLibraryToMarkdown(library = getDramaturgyRuleLibrary()) {
   const lines = [
-    "# 新锐纪元剧本创作原则规则库",
+    "# 当前项目剧本创作原则规则库",
     "",
     `主源：${library.primarySource}`,
     `核心命题：${library.thesis}`,

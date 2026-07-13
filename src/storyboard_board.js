@@ -1,4 +1,9 @@
-const BOARD_STANDARD = "xinrui-storyboard-board-v1";
+import fs from "node:fs";
+import path from "node:path";
+import { getProjectRoot } from "./config.js";
+
+const BOARD_STANDARD = "creator-storyboard-board-v2";
+const PROJECT_ROOT = getProjectRoot();
 const PHOTOSHOP_PATH = "<ADOBE_ROOT>\\Adobe Photoshop 2021";
 const PREMIERE_PATH = "<ADOBE_ROOT>\\Adobe Premiere Pro 2022";
 
@@ -157,6 +162,8 @@ function buildFrameStrip(pack) {
     rhythmNote: shot.directorShot?.rhythmNote || "",
     transitionContinuity: shot.directorShot?.transitionContinuity || "",
     framePrompt: shot.promptSpec?.positivePrompt || shot.positivePrompt || "",
+    promptV2: shot.promptSpec?.promptV2 || null,
+    promptCompleteness: shot.promptSpec?.promptV2?.completeness || shot.promptSpec?.promptCompleteness || null,
     caption: compact(shot.scene),
     action: compact(shot.action),
     camera: {
@@ -183,11 +190,67 @@ function buildMovementMap(pack) {
   };
 }
 
+function readableFile(filePath = "") {
+  if (!filePath) return false;
+  const absolute = path.isAbsolute(filePath) ? filePath : path.resolve(PROJECT_ROOT, filePath);
+  try {
+    return fs.statSync(absolute).isFile();
+  } catch {
+    return false;
+  }
+}
+
+function buildBoardReadiness(board) {
+  const shots = (board.frames || []).map((frame) => {
+    const generatedPath = frame.image2Frame?.generatedImagePath
+      || frame.image2Frame?.output?.outputPath
+      || frame.image2Frame?.outputPlan?.filePath
+      || "";
+    const qaGate = frame.image2Frame?.visualQaV2?.gate || frame.keySceneIllustration?.visualQaV2?.gate || null;
+    const checks = {
+      promptComplete: Number(frame.promptCompleteness?.score || 0) >= 88,
+      actionDefined: Boolean(frame.action),
+      routeDefined: Boolean(frame.axis?.screenDirection || frame.transitionContinuity),
+      lensDefined: Boolean(frame.camera?.lens),
+      cameraMovementDefined: Boolean(frame.camera?.movement),
+      compositionDefined: Boolean(frame.camera?.framing),
+      blockingDefined: Boolean(frame.concreteFrame?.svgUrl || frame.controlHints?.length),
+      generatedFrameExists: readableFile(generatedPath),
+      visualQaPassed: qaGate?.canEnterSeedanceFinal === true
+    };
+    return {
+      shot: frame.index,
+      promptScore: Number(frame.promptCompleteness?.score || 0),
+      generatedPath,
+      checks,
+      metadataReady: checks.promptComplete && checks.actionDefined && checks.routeDefined && checks.lensDefined && checks.cameraMovementDefined && checks.compositionDefined && checks.blockingDefined,
+      finalFrameReady: checks.generatedFrameExists && checks.visualQaPassed
+    };
+  });
+  const metadataBlockers = shots.flatMap((shot) => Object.entries(shot.checks)
+    .filter(([key, value]) => !value && !["generatedFrameExists", "visualQaPassed"].includes(key))
+    .map(([key]) => `S${shot.shot}: ${key}`));
+  const finalBlockers = shots.flatMap((shot) => [
+    ...(!shot.checks.generatedFrameExists ? [`S${shot.shot}: 正式连续分镜图尚未落盘`] : []),
+    ...(!shot.checks.visualQaPassed ? [`S${shot.shot}: 视觉 QA V2 尚未通过正式门槛`] : [])
+  ]);
+  return {
+    standard: "creator-storyboard-board-readiness-v1",
+    promptThreshold: 88,
+    shots,
+    canCreateBoardSpec: shots.length > 0 && metadataBlockers.length === 0,
+    canAssembleFinalBoard: shots.length > 0 && metadataBlockers.length === 0 && finalBlockers.length === 0 && !(board.missingDesignTasks || []).length,
+    metadataBlockers,
+    finalBlockers,
+    rule: "逐镜头提示词、动线/轴线、焦段、机动、构图和调度全部完备后才创建总图规格；每张真实分镜落盘并通过 QA V2 后才组装最终统一故事板。"
+  };
+}
+
 function buildBoardPrompt(pack, board) {
   const characters = board.characterSheet.characters.length ? board.characterSheet.characters.join("、") : "资料库确认角色";
   const shotList = board.frames.map((frame) => `S${frame.index}: ${frame.caption}; image-2 continuity frame: ${frame.image2Frame?.outputPlan?.filePath || "generate first"}; key scene illustration: ${frame.keySceneIllustration?.outputPlan?.fileName || "generate first"}; blocking sketch: ${frame.concreteFrame?.svgUrl || "generate first"}; ${frame.camera.lens}; ${frame.camera.movement}`).join(" | ");
   return [
-    "Create one clean professional storyboard production board as a single image.",
+    "Assemble one clean professional storyboard production board from approved source frames; do not redraw the approved frames and do not ask an image model to invent labels, maps or camera data.",
     `Title: ${pack.project.title}.`,
     `Style: ${board.sceneLock.artStyle || "animation anime cinematic film quality"}. If the user does not specify another style, use animation anime cinematic film-quality visuals as the base and extend from that style.`,
     `Characters: ${characters}; keep identity, costume, hair, equipment consistent across all panels.`,
@@ -200,7 +263,7 @@ function buildBoardPrompt(pack, board) {
     "Each panel must carry timeline information: start time, end time, duration and rhythm role. Shot count and duration must fit the target runtime.",
     "Before finalizing every single storyboard image, run a self-check for character consistency, prop consistency, 180-degree axis, hand/action anatomy, scene geography, style continuity and panel-to-panel continuity.",
     "Use causal narrative continuity: perception -> action -> new perception -> new action. Every panel should show what changed and why the next panel follows.",
-    "Use the blocking sketches only to preserve camera direction, 180-degree axis, geography, and movement. The visible storyboard panels must be finished key-scene character illustrations with environment, lighting, props, facial expression, and cinematic atmosphere, not line-only diagrams or text placeholders. Include movement arrows, floor plan, prop/costume callouts, shot-level descriptions, no random redesign, no watermark, no messy text."
+    "Use the blocking sketches to preserve camera direction, 180-degree axis, geography, and movement. Use deterministic HTML/Canvas/Photoshop layout for movement arrows, floor plan, prop/costume callouts and exact shot text. The visible storyboard panels must be the approved finished key-scene illustrations, not newly redrawn approximations."
   ].join(" ");
 }
 
@@ -314,6 +377,14 @@ export function buildStoryboardBoard(pack, concreteFramePack = null, illustratio
       premiereUse: "15 秒动画粗剪、字幕、节奏、音乐占位和导出说明，项目文件输出到 output/premiere/"
     }
   };
+  board.generationGate = buildBoardReadiness(board);
+  board.assembly = {
+    mode: "deterministic-approved-frame-layout",
+    sourceOfTruth: "approved per-shot images + SVG blocking/movement maps + exact camera metadata",
+    rendererPriority: ["HTML/Canvas", "Photoshop", "Remotion/Hyperframes"],
+    imageModelRole: "only generate or repair individual shot illustrations; never typeset the final board",
+    outputFormats: ["PNG", "PSD", "HTML", "JSON"]
+  };
   return { ...board, boardPrompt: buildBoardPrompt(pack, board) };
 }
 
@@ -327,6 +398,8 @@ export function storyboardBoardToMarkdown(board) {
     `- 剧集尺度：${board.dramaScale.label}`,
     board.dramaScale.totalDurationSec ? `- 规划总时长：${board.dramaScale.totalDurationSec}s` : "",
     `- 节奏：${board.dramaScale.rhythm}`,
+    `- 总图规格门禁：${board.generationGate?.canCreateBoardSpec ? "通过" : "未通过"}`,
+    `- 最终总图组装门禁：${board.generationGate?.canAssembleFinalBoard ? "通过" : "未通过"}`,
     "",
     "## 单张故事板总图提示词",
     "",
@@ -336,6 +409,7 @@ export function storyboardBoardToMarkdown(board) {
     "",
     "## 版面结构",
     ...board.canvas.layout.map((item) => `- ${item}`),
+    `- 组装方式：${board.assembly?.mode || ""}`,
     "",
     "## 关键情景插图",
     ...(board.frames || []).map((frame) => `- S${frame.index}: ${frame.keySceneIllustration?.title || "未生成关键情景插图"} / ${frame.keySceneIllustration?.outputPlan?.directory || ""}${frame.keySceneIllustration?.outputPlan?.fileName || ""}`),
@@ -362,6 +436,10 @@ export function storyboardBoardToMarkdown(board) {
     "",
     "## 缺失资产任务",
     ...(board.missingDesignTasks.length ? board.missingDesignTasks.map((item) => `- ${item.title}: ${item.reason} 输出：${item.output}`) : ["- 暂无明显缺失资产任务。"]),
+    "",
+    "## 总图门禁",
+    ...(board.generationGate?.metadataBlockers?.length ? board.generationGate.metadataBlockers.map((item) => `- 元数据：${item}`) : ["- 镜头提示词、动线和摄像机元数据已完备。"]),
+    ...(board.generationGate?.finalBlockers?.length ? board.generationGate.finalBlockers.map((item) => `- 成片：${item}`) : ["- 所有正式分镜图均已落盘并通过 QA。"]),
     "",
     "## 逻辑复核",
     ...board.logicChecklist.map((item) => `- ${item}`),

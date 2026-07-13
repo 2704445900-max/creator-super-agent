@@ -1,4 +1,4 @@
-const FRAME_STANDARD = "xinrui-concrete-storyboard-frames-v1";
+const FRAME_STANDARD = "creator-concrete-storyboard-frames-v1";
 
 function compact(value) {
   return String(value || "").replace(/\s+/g, " ").trim();

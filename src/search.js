@@ -33,8 +33,8 @@ function getExpandedTerms(db, query) {
   const domainKeywords = [
     "队内", "定位", "职务", "角色", "关系", "武器", "生日", "籍贯", "身高",
     "事件", "时间线", "组织", "势力", "素材", "故事板", "分镜", "漫画",
-    "视频", "音乐", "设定", "世界观", "法特提", "古蒂斯", "林小队",
-    "认知干预", "数字孪生", "脑机接口", "龙醒计划"
+    "视频", "音乐", "设定", "世界观", "示例对手组织A", "示例对手组织B", "当前项目团队",
+    "认知干预", "数字孪生", "脑机接口", "示例视频项目"
   ];
   for (const keyword of domainKeywords) {
     if (raw.includes(keyword)) add(keyword);
@@ -278,7 +278,7 @@ function buildDirectAnswer(result = {}) {
     }
   }
   return {
-    standard: "xinrui-direct-answer-v1",
+    standard: "creator-direct-answer-v1",
     query: result.query || "",
     intent: intent.label,
     primary,

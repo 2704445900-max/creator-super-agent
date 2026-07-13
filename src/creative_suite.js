@@ -62,7 +62,7 @@ const PLUGINS = [
     label: "UI/UX Pro Max HTML Skill",
     role: "Professional HTML workbench panels, dashboards, plugin UIs, responsive control surfaces, and exportable HTML prototypes.",
     githubReference: "https://github.com/nextlevelbuilder/ui-ux-pro-max-skill",
-    workbenchUse: "Use for Xinrui workbench UI pages, evidence cards, production dashboards, prompt editors, and HTML export packages.",
+    workbenchUse: "Use for the workbench UI pages, evidence cards, production dashboards, prompt editors, and HTML export packages.",
     endpoints: ["/api/pipeline/creative-suite"]
   },
   {
@@ -80,7 +80,7 @@ const PLUGINS = [
     label: "Godogen / Godot Independent Game Design",
     role: "Independent game concepts, GDD, mechanics, level planning, Godot prototype roadmap, and IP-to-game adaptation.",
     githubReference: "https://github.com/godotengine/godot",
-    workbenchUse: "Use when a Xinrui story, character, or mission should become a playable Godot prototype or design document.",
+    workbenchUse: "Use when a project story, character, or mission should become a playable Godot prototype or design document.",
     endpoints: ["/api/pipeline/creative-suite"]
   },
   {
@@ -174,17 +174,17 @@ function buildRoutingPlan(mode) {
   const base = [
     {
       stage: "canon-and-asset-lock",
-      plugin: "xinrui-ip-studio",
+      plugin: "creator-super-agent",
       action: "Search local canon, identify character/prop/scene/style locks, and mark missing assets before any generation."
     },
     {
       stage: "external-reference",
-      plugin: "xinrui-ip-studio + browser",
+      plugin: "creator-super-agent + browser",
       action: "When real-world props, cities, uniforms, weapons, vehicles, platforms, or art styles are not in the local library, research first and stage references as non-canon pending material."
     },
     {
       stage: "storyboard-and-visual-qa",
-      plugin: "xinrui-ip-studio",
+      plugin: "creator-super-agent",
       action: "Create timed storyboard, image-2 frame prompts, unified board spec, and run single-frame visual QA."
     }
   ];
@@ -229,11 +229,11 @@ function buildRoutingPlan(mode) {
       {
         stage: "html-prototype",
         plugin: "ui-ux-pro-max@personal",
-        action: "Create production-quality HTML/CSS/JS surfaces that fit Xinrui workbench conventions."
+        action: "Create production-quality HTML/CSS/JS surfaces that fit the workbench conventions."
       },
       {
         stage: "integration",
-        plugin: "xinrui-ip-studio",
+        plugin: "creator-super-agent",
         action: "Connect the surface to workbench APIs and validate it in the browser."
       }
     ],
@@ -250,7 +250,7 @@ function buildRoutingPlan(mode) {
       },
       {
         stage: "asset-reuse",
-        plugin: "xinrui-ip-studio",
+        plugin: "creator-super-agent",
         action: "Reuse local character, prop, scene, and storyboard references; mark missing sprites, UI, VFX, and audio."
       }
     ]
@@ -264,7 +264,7 @@ function buildRoutingPlan(mode) {
 
 export function getCreativePluginSuite() {
   return {
-    standard: "xinrui-creative-plugin-suite-v1",
+    standard: "creator-creative-plugin-suite-v1",
     checkedAt: nowIso(),
     pluginRoots: {
       personal: PERSONAL_PLUGIN_ROOT,
@@ -285,19 +285,19 @@ export function getCreativePluginSuite() {
     safeBoundaries: [
       "Plugins may create plans, prompts, local files, and deterministic prototypes automatically.",
       "Paid model generation, public publishing, and writing external research into canon still require explicit confirmation.",
-      "External GitHub/browser references are guidance or technical dependencies, not Xinrui canon."
+      "External GitHub/browser references are guidance or technical dependencies, not project canon."
     ]
   };
 }
 
 export function createCreativeSuitePlan(input = {}) {
   const mode = inferMode(input);
-  const topic = compact(input.topic || input.title || input.intent || "Xinrui creative project");
+  const topic = compact(input.topic || input.title || input.intent || "Creator creative project");
   const targetDurationSec = Number(input.targetDurationSec || input.durationSec || 15);
   const suite = getCreativePluginSuite();
   const routingPlan = buildRoutingPlan(mode);
   return {
-    standard: "xinrui-creative-suite-routing-plan-v1",
+    standard: "creator-creative-suite-routing-plan-v1",
     createdAt: nowIso(),
     topic,
     mode,
@@ -323,7 +323,7 @@ export function createCreativeSuitePlan(input = {}) {
       {
         capability: "Godogen / Godot design",
         independentUse: "Use godogen-game-design skill for GDDs, mechanics, level plans, and prototype scope.",
-        workbenchUse: "Workbench uses it to transform Xinrui scripts and assets into playable prototype plans."
+        workbenchUse: "Workbench uses it to transform project scripts and assets into playable prototype plans."
       },
       {
         capability: "Hyperframes",

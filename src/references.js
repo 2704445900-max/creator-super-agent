@@ -100,7 +100,7 @@ const SOURCE_CATALOG = [
     title: "List of equipment of the United States Army",
     url: "https://en.wikipedia.org/wiki/List_of_equipment_of_the_United_States_Army",
     useFor: ["weapon_reference", "vehicle_reference", "equipment_taxonomy"],
-    note: "用于装备分类和命名参考，不直接决定新锐纪元装备设定。"
+    note: "用于装备分类和命名参考，不直接决定当前项目装备设定。"
   }
 ];
 
@@ -314,7 +314,7 @@ function sourceLinksMarkdown(result) {
     "",
     "## Browser-First Rule",
     "- 先浏览器检索并筛选可靠来源。",
-    "- 只提取事实、视觉特征和制作方法，不写入新锐纪元正史。",
+    "- 只提取事实、视觉特征和制作方法，不写入当前项目正史。",
     "- 至少选择一张可读参考图或本地参考板后，再进入正式生成。"
   ].join("\n");
 }
@@ -359,7 +359,7 @@ function styleConversionMarkdown(result) {
     `# ${pack.label || result.query || "External Reference"} Style Conversion Notes`,
     "",
     "- 外部参考只保留结构、功能、材质和空间逻辑。",
-    "- 转换到新锐纪元风格时，优先统一线条、材质分层、光色和角色身份锁。",
+    "- 转换到当前项目风格时，优先统一线条、材质分层、光色和角色身份锁。",
     "- 不把现实组织归属、政治含义、型号设定直接写进 IP 正史。",
     "- 若用户要求精确现实物件，正式图必须保留可核验轮廓；若风格化改造，需标注为合理推断或衍生设计。"
   ].join("\n");
@@ -381,7 +381,7 @@ function visualQaMarkdown(result) {
     "- [ ] 浏览器来源已记录。",
     "- [ ] 参考图已保存或可直接打开。",
     "- [ ] 视觉特征已提取。",
-    "- [ ] 已确认是否进行新锐纪元风格化。",
+    "- [ ] 已确认是否进行当前项目风格化。",
     "- [ ] 已完成角色、道具、场景和手部/构图复核。"
   ].join("\n");
 }
@@ -416,7 +416,7 @@ export function createRealWorldReferencePack(input = {}) {
   const key = normalizeRealWorldKey(query);
   const pack = key ? REAL_WORLD_REFERENCE_PACKS[key] : defaultRealWorldPack(query, focus);
   const result = {
-    standard: "xinrui-real-world-reference-pack-v1",
+    standard: "creator-real-world-reference-pack-v1",
     createdAt: new Date().toISOString(),
     query,
     focus,
@@ -444,7 +444,7 @@ export function createRealWorldReferencePack(input = {}) {
     },
     canonBoundary: [
       "External references are professional visual references only.",
-      "They do not become Xinrui canon unless the user approves a setting proposal.",
+      "They do not become project canon unless the user approves a setting proposal.",
       "For real weapons, uniforms, cities, maps, vehicles and props, final generation requires browser-reviewed visual sources or a selected local reference image."
     ]
   };
@@ -523,14 +523,14 @@ export function createReferencePlan(input = {}) {
   });
   const shouldUseRealWorldPack = /QBZ|AK|M4|rifle|weapon|gun|uniform|city|map|vehicle|equipment|步枪|枪|武器|军装|城市|地图|车辆|装备/i.test(`${query} ${input.focus || ""}`);
   return {
-    standard: "xinrui-professional-reference-v1",
+    standard: "creator-professional-reference-v1",
     query,
     focuses,
     sources,
     realWorldReferencePack: shouldUseRealWorldPack ? realWorldReferencePack : null,
     searchUrls: buildSearchUrls(query, focuses),
     usageRules: [
-      "外部资料只能作为专业参考、视觉参考或技术流程参考，不能直接成为新锐纪元 canon。",
+      "外部资料只能作为专业参考、视觉参考或技术流程参考，不能直接成为当前项目 canon。",
       "角色、组织、事件、武器归属和世界观结论必须回到本地资料库校准。",
       "军装、武器、道具和场景参考要拆成可视属性：形状、材质、携行方式、功能逻辑、磨损程度。",
       "角色动态参考要拆成骨架姿态、重心、视线、手部动作、道具交互，不只写情绪形容词。",

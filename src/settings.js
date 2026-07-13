@@ -77,7 +77,7 @@ function buildProposalPrompt({ targetName, targetType, intent, currentEntity, ev
   };
 
   return [
-    "你是《新锐纪元》IP设定整理与合理化助手。",
+    "你是《当前项目》IP设定整理与合理化助手。",
     "请基于给定资料库证据，为目标设定生成一个保守、可追溯的修订提案。",
     "不要擅自新增证据中没有的硬设定。可以把缺口标为待确认，也可以建议更清晰的表达。",
     "输出必须是 JSON 对象，字段为：proposal_title, rationale, proposed_summary, proposed_details。",

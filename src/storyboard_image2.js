@@ -1,6 +1,6 @@
 import { buildSingleFrameSelfCheck, buildStoryboardAuditPack } from "./storyboard_audit.js";
 
-const IMAGE2_STORYBOARD_STANDARD = "xinrui-image2-continuity-storyboard-v1";
+const IMAGE2_STORYBOARD_STANDARD = "creator-image2-continuity-storyboard-v1";
 const PHOTOSHOP_PATH = "<ADOBE_ROOT>\\Adobe Photoshop 2021";
 const PREMIERE_PATH = "<ADOBE_ROOT>\\Adobe Premiere Pro 2022";
 
@@ -182,7 +182,7 @@ const SCENE_REQUIREMENTS = [
     name: "侧门",
     pattern: /侧门|side door/i,
     terms: ["侧门", "side door"],
-    spec: "侧门是唐舒嫣接入线路和绕行的位置，不能和主门混淆。"
+    spec: "侧门是项目角色B接入线路和绕行的位置，不能和主门混淆。"
   },
   {
     id: "floor_plan",
@@ -519,14 +519,15 @@ export function buildImage2StoryboardPlan(pack, framePack = null, illustrationPa
     recommendedSize,
     requiredSections: boardSpec.requiredSections,
     sourceFrames: continuousFrames.map((frame) => frame.outputPlan.filePath),
-    image2Prompt: buildUnifiedBoardPrompt(pack, continuousFrames, boardSpec, identityLocks, propLocks, sceneLocks, detailAudit),
-    negativePrompt: "text-only board, no character art, inconsistent identity, wrong costume, wrong prop, chaotic map, unreadable camera notes, watermark, logo, random redesign",
-    image2Request: {
-      model: "image-2",
-      task: "generate_unified_storyboard_board",
+    layoutSpec: buildUnifiedBoardPrompt(pack, continuousFrames, boardSpec, identityLocks, propLocks, sceneLocks, detailAudit),
+    image2Prompt: "DEPRECATED: image-2 only generates individual approved frames; final board uses deterministic assembly.",
+    negativePrompt: "do not redraw approved frames, do not invent text, do not invent camera data, do not alter character identity",
+    image2Request: null,
+    assemblyRequest: {
+      renderer: "html-canvas-photoshop",
+      task: "assemble_approved_storyboard_board",
       size: recommendedSize,
-      prompt: buildUnifiedBoardPrompt(pack, continuousFrames, boardSpec, identityLocks, propLocks, sceneLocks, detailAudit),
-      negativePrompt: "text-only board, no character art, inconsistent identity, wrong costume, wrong prop, chaotic map, unreadable camera notes, watermark, logo, random redesign",
+      layoutSpec: buildUnifiedBoardPrompt(pack, continuousFrames, boardSpec, identityLocks, propLocks, sceneLocks, detailAudit),
       referenceImages: [
         ...continuousFrames.map((frame) => ({
           type: "generated_continuity_frame",
@@ -566,7 +567,7 @@ export function buildImage2StoryboardPlan(pack, framePack = null, illustrationPa
     model: "image-2",
     project: pack.project,
     workflowPosition: "关键情景插图提示词之后、统一故事板总图之前；用于生成成片连续分镜图和最终统一故事板。",
-    executionMode: "two_pass_image_generation",
+    executionMode: "codex_native_frames_then_deterministic_board",
     identityLocks,
     propLocks,
     sceneLocks,
@@ -594,8 +595,9 @@ export function buildImage2StoryboardPlan(pack, framePack = null, illustrationPa
       }))
     ],
     passOrder: [
-      "第一遍：逐镜头调用 image-2，生成成片连续分镜图。",
-      "第二遍：调用 image-2，将连续分镜、角色设计、场景图、动线图、摄像机参数整合为一张统一故事板。"
+      "第一遍：逐镜头调用 Codex 内置 image-2，生成成片连续分镜图并落盘。",
+      "第二遍：逐镜头完成真实图片 QA 与最多两轮修复。",
+      "第三遍：使用 HTML/Canvas/Photoshop 把已批准图片、动线图、平面图和准确摄像机参数组装为统一故事板。"
     ],
     codexExecutionRule: "在 Codex 内执行时，优先直接调用内置 image-2 图像生成；只有当前环境没有图像生成能力时，才退回为提示词/请求包。",
     continuityRules: [

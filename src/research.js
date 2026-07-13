@@ -183,7 +183,7 @@ function detectResearchFocus(text, requestedFocus = "") {
 }
 
 function buildSearchUrls(query, focuses) {
-  const q = compact(query) || "新锐纪元 动画 分镜 审美 参考";
+  const q = compact(query) || "当前项目 动画 分镜 审美 参考";
   const urls = [
     { platform: "豆瓣电影 Top250", label: "经典电影样本入口", url: "https://movie.douban.com/top250" },
     { platform: "B站", label: "站内搜索同题材动画/手书/战术美少女", url: `https://search.bilibili.com/all?keyword=${encodeURIComponent(q)}` },
@@ -213,7 +213,7 @@ function sourcesForFocus(focuses) {
 
 export function getResearchCatalog() {
   return {
-    standard: "xinrui-research-catalog-v1",
+    standard: "creator-research-catalog-v1",
     platformSources: PLATFORM_SOURCES,
     filmLanguageSources: FILM_LANGUAGE_SOURCES,
     classicFilmSeeds: CLASSIC_FILM_SEEDS,
@@ -227,7 +227,7 @@ export function createResearchPlan(input = {}) {
   const query = compact(input.query || input.topic || "");
   const focuses = detectResearchFocus(query, input.focus);
   return {
-    standard: "xinrui-aesthetic-research-plan-v1",
+    standard: "creator-aesthetic-research-plan-v1",
     query,
     focuses,
     browserFirstRule: "本地资料库没有明确答案时，先浏览器检索；只提取事实、视觉特征、结构方法和参考图片线索，不直接写入正史。",
@@ -236,7 +236,7 @@ export function createResearchPlan(input = {}) {
     searchUrls: buildSearchUrls(query, focuses),
     extractionCards: [
       "事实卡：对象是什么、来源链接、发布日期或版本、可信度、是否与本地正史冲突。",
-      "视觉卡：轮廓、材质、配色、比例、使用方式、可改造成新锐纪元风格的部分。",
+      "视觉卡：轮廓、材质、配色、比例、使用方式、可改造成当前项目风格的部分。",
       "分镜卡：镜头大小、机位、运动、轴线、剪辑点、观众获得的信息。",
       "平台卡：标题结构、首帧/封面、前3秒钩子、互动设计、评论区关键词。",
       "学术卡：论文题名、作者、核心观点、适用到受众分析/传播策略的结论。"

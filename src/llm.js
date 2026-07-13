@@ -45,7 +45,7 @@ export function getLlmDiagnostics(config) {
   if (!runtime.apiKey) missing.push("LLM_API_KEY 或 OPENAI_API_KEY 未配置");
   const mode = runtime.enabled ? "llm_enabled" : "local_rules_only";
   return {
-    standard: "xinrui-llm-diagnostics-v2",
+    standard: "creator-llm-diagnostics-v2",
     provider: runtime.provider,
     model: runtime.model,
     baseUrl: runtime.baseUrl,
@@ -127,7 +127,7 @@ function buildEvidencePayload(searchResult) {
 export function buildRagPrompt(question, searchResult) {
   const evidence = buildEvidencePayload(searchResult);
   return [
-    "你是《新锐纪元》IP资料库智能体。",
+    "你是《当前项目》IP资料库智能体。",
     "请只依据给定资料库证据回答；如果证据不足，明确说明哪些部分无法确认。",
     "回答使用简体中文，先给结论，再给依据。涉及设定时要区分“已确认”和“待补全/推断”。",
     "",
@@ -301,11 +301,11 @@ export async function testLlmConnection(config, input = {}) {
       error: "LLM is not configured."
     };
   }
-  const prompt = String(input.prompt || "请用一句中文回复：新锐纪元工作台大模型连接正常。").trim();
+  const prompt = String(input.prompt || "请用一句中文回复：当前项目工作台大模型连接正常。").trim();
   const startedAt = Date.now();
   const result = await completeWithLlm(config, prompt, {
     temperature: 0,
-    system: "你是新锐纪元 IP 工作台的大模型连接测试助手。只做简短确认，不添加设定。"
+    system: "你是当前项目 IP 工作台的大模型连接测试助手。只做简短确认，不添加设定。"
   });
   return {
     ...diagnostics,

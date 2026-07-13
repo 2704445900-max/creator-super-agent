@@ -50,7 +50,7 @@ export function getStats(db) {
 
 export function formatStats(stats) {
   const lines = [];
-  lines.push("新锐纪元 IP 数据库统计");
+  lines.push("当前项目 IP 数据库统计");
   lines.push("");
   lines.push(`活跃文件：${stats.fileStats.active_files ?? 0} / 总记录：${stats.fileStats.total_files ?? 0}`);
   lines.push(`活跃容量：${formatBytes(stats.fileStats.active_bytes ?? 0)}`);

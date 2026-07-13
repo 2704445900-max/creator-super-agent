@@ -1,0 +1,74 @@
+{
+  "schema": "creator-visual-qa-config-v2",
+  "thresholds": {
+    "promptDraft": 70,
+    "promptFinal": 88,
+    "visualDraft": 72,
+    "visualFinal": 86,
+    "maxAutomaticRepairRounds": 2
+  },
+  "dimensions": [
+    "identity",
+    "singleOutfit",
+    "anatomy",
+    "hands",
+    "propGeometry",
+    "composition",
+    "sceneSpace",
+    "lighting",
+    "color",
+    "style",
+    "continuity",
+    "artifacts"
+  ],
+  "optionalAdapters": [
+    {
+      "id": "dwpose",
+      "repository": "https://github.com/IDEA-Research/DWPose",
+      "useFor": ["body_pose", "hand_keypoints", "face_keypoints"],
+      "integration": "optional-python-sidecar"
+    },
+    {
+      "id": "mmpose",
+      "repository": "https://github.com/open-mmlab/mmpose",
+      "useFor": ["pose_validation", "hand_pose_validation"],
+      "integration": "optional-python-sidecar"
+    },
+    {
+      "id": "grounding-dino",
+      "repository": "https://github.com/IDEA-Research/GroundingDINO",
+      "useFor": ["character_detection", "prop_detection", "equipment_detection"],
+      "integration": "optional-python-sidecar"
+    },
+    {
+      "id": "sam2",
+      "repository": "https://github.com/facebookresearch/sam2",
+      "useFor": ["repair_mask", "subject_segmentation", "prop_segmentation"],
+      "integration": "optional-python-sidecar"
+    },
+    {
+      "id": "iqa-pytorch",
+      "repository": "https://github.com/chaofengc/IQA-PyTorch",
+      "useFor": ["image_quality", "artifact_score", "aesthetic_score"],
+      "integration": "optional-python-sidecar"
+    },
+    {
+      "id": "open-clip",
+      "repository": "https://github.com/mlfoundations/open_clip",
+      "useFor": ["prompt_image_alignment", "style_continuity", "cross_shot_similarity"],
+      "integration": "optional-python-sidecar"
+    },
+    {
+      "id": "open-color-io",
+      "repository": "https://github.com/AcademySoftwareFoundation/OpenColorIO",
+      "useFor": ["color_management", "lut_handoff"],
+      "integration": "optional-color-service"
+    },
+    {
+      "id": "colour-science",
+      "repository": "https://github.com/colour-science/colour",
+      "useFor": ["lab_oklch_analysis", "delta_e", "palette_validation"],
+      "integration": "optional-color-service"
+    }
+  ]
+}

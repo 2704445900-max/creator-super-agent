@@ -40,6 +40,7 @@ function defaultPolicy(input = {}) {
       priority: "cloud-multimodal-first",
       defaultProvider: input.imageProvider || "openai",
       defaultModel: input.imageModel || "gpt-image-2",
+      executionMode: input.imageExecutionMode || "codex_native",
       optionalLocalFallback: "comfyui"
     }
   };
@@ -47,6 +48,7 @@ function defaultPolicy(input = {}) {
 
 function buildSteps(input = {}, policy = {}) {
   const withImages = input.generateImages === true;
+  const nativeImageMode = policy.imagePolicy?.executionMode === "codex_native";
   return [
     { key: "plan", title: "理解目标与生成执行计划", tool: "plan", autoLevel: "local_auto", enabled: true },
     { key: "project", title: "建立或更新项目工作区", tool: "project", autoLevel: "local_auto", enabled: true },
@@ -56,10 +58,17 @@ function buildSteps(input = {}, policy = {}) {
     { key: "prompt", title: "提示词结构化与大模型增强", tool: "prompt", autoLevel: "local_auto", enabled: true },
     { key: "storyboard", title: "导演分镜与故事板数据", tool: "storyboard", autoLevel: "local_auto", enabled: true },
     {
+      key: "native_image_task",
+      title: "创建 Codex 原生 image-2 任务包",
+      tool: "nativeImageTask",
+      autoLevel: "local_auto",
+      enabled: withImages && nativeImageMode
+    },
+    {
       key: "image_generation",
-      title: "云端多模态大模型生图",
+      title: nativeImageMode ? "Codex 原生 image-2 生图并落盘" : "云端多模态大模型生图",
       tool: "image",
-      autoLevel: policy.requirePaidApproval ? "paid_confirm" : "local_auto",
+      autoLevel: nativeImageMode ? "codex_native_confirm" : policy.requirePaidApproval ? "paid_confirm" : "local_auto",
       enabled: withImages,
       maxAttempts: policy.maxImageAttempts
     },
@@ -165,6 +174,7 @@ function hydrateRun(row, db, options = {}) {
 }
 
 function approvalTypeForStep(step) {
+  if (step.autoLevel === "codex_native_confirm") return "codex_native_image_generation";
   if (step.autoLevel === "paid_confirm") return "paid_image_generation";
   if (step.autoLevel === "visual_confirm") return "visual_review";
   if (step.autoLevel === "publish_confirm") return "external_publish";
@@ -172,6 +182,19 @@ function approvalTypeForStep(step) {
 }
 
 function approvalRequestForStep(step, run) {
+  if (step.autoLevel === "codex_native_confirm") {
+    return {
+      title: "使用 Codex 原生 image-2 完成生图",
+      reason: "工作台已生成提示词和落盘任务包；Codex 必须调用内置 image_gen，保存图片后提交本地路径。",
+      model: "gpt-image-2",
+      executionMode: "codex_native",
+      task: run.state.nativeImageTask || null,
+      expectedResponse: {
+        sourceImagePath: "$CODEX_HOME/generated_images/.../generated.png",
+        confirmedGeneratedByCodexNative: true
+      }
+    };
+  }
   if (step.autoLevel === "paid_confirm") {
     return {
       title: "批准云端大模型生图",
@@ -261,7 +284,7 @@ export function createAgentRuntime(db, options = {}) {
   }
 
   function shouldRequestApproval(step) {
-    if (!["paid_confirm", "visual_confirm", "publish_confirm"].includes(step.autoLevel)) return false;
+    if (!["codex_native_confirm", "paid_confirm", "visual_confirm", "publish_confirm"].includes(step.autoLevel)) return false;
     return !approvedResponse(step.id);
   }
 
@@ -280,6 +303,7 @@ export function createAgentRuntime(db, options = {}) {
       projectSlug: state.projectSlug || run.projectSlug || run.input.projectSlug || "",
       storyboardId: state.storyboardId || null,
       imagePath: state.imagePath || run.input.imagePath || "",
+      nativeImageTask: state.nativeImageTask || null,
       automatedQa: state.visualQa || null,
       topic: run.input.topic || run.title,
       title: run.input.title || run.title,
@@ -291,6 +315,7 @@ export function createAgentRuntime(db, options = {}) {
         : ""),
       execute: step.key === "image_generation",
       generate: step.key === "image_generation",
+      imageExecutionMode: run.policy.imagePolicy?.executionMode || run.input.imageExecutionMode || "codex_native",
       allowDraft: run.input.allowDraft !== false,
       persistReport: step.key === "visual_qa" || step.key === "visual_review"
     };
@@ -306,6 +331,9 @@ export function createAgentRuntime(db, options = {}) {
     if (step.key === "storyboard") {
       state.storyboardId = output?.project?.id || output?.storyboardId || state.storyboardId || null;
       state.storyboardArchive = output?.projectArchive || output?.archive || null;
+    }
+    if (step.key === "native_image_task") {
+      state.nativeImageTask = output;
     }
     if (step.key === "image_generation") {
       const outputPath = output?.output?.outputPath || output?.outputPath || output?.generatedImage || "";

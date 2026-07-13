@@ -1,9 +1,9 @@
 {
   "name": "creator-super-agent",
-  "version": "0.1.0+codex.local-20260712-111803",
-  "description": "A portable full-pipeline creator agent for research, scripts, art assets, cloud multimodal image generation, storyboards, video planning, post-production, publishing, and review without binding to a private IP library.",
+  "version": "0.2.0+codex.local-20260713-004348",
+  "description": "A portable full-pipeline creator agent with Prompt V2, Codex native gpt-image-2 generation, versioned local persistence, visual QA V2, deterministic storyboards, video planning, post-production, publishing, and review without binding to a private IP library.",
   "author": {
-    "name": "Xinrui Era Studio"
+    "name": "Creator Studio"
   },
   "license": "MIT",
   "keywords": [
@@ -12,6 +12,10 @@
     "content-pack",
     "storyboard",
     "gpt-image-2",
+    "codex-native-image-generation",
+    "prompt-v2",
+    "visual-qa-v2",
+    "deterministic-storyboard-assembly",
     "cloud-multimodal-image",
     "seedance",
     "remotion",
@@ -24,8 +28,8 @@
   "interface": {
     "displayName": "全流程创作超级智能体",
     "shortDescription": "通用自媒体、动画与影视项目的持久化创作智能体。",
-    "longDescription": "为任意原创项目或账号建立隔离工作区，持续执行研究、剧本校准、资产清单、提示词、故事板、云端多模态生图、视觉质检、Seedance/后期方案和平台发布。付费生成、视觉终审和发布保留审批门禁。",
-    "developerName": "Xinrui Era Studio",
+    "longDescription": "为任意原创项目或账号建立隔离工作区，持续执行研究、剧本校准、资产清单、Prompt V2、色彩和风格视觉圣经、导演故事板、Codex 原生 gpt-image-2 生成与版本化落盘、视觉 QA V2、Seedance/后期方案和平台发布。直接付费 API、视觉终审和发布保留审批门禁。",
+    "developerName": "Creator Studio",
     "category": "Productivity",
     "capabilities": [
       "Read",

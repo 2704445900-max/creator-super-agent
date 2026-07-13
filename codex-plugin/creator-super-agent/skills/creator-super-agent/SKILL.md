@@ -1,15 +1,15 @@
 ---
 name: creator-super-agent
-description: "Use for a generic, persistent, full-pipeline creator agent that is not bound to the Xinrui private IP library: browser-first research, project setup, script review, asset inventory, prompt refinement, ChatGPT/OpenAI or compatible cloud image generation, visual QA, director storyboards, Seedance planning, AE/PR/Remotion/Hyperframes handoff, publishing, and finished-work review."
+description: "Use for a generic, persistent, full-pipeline creator agent that is not bound to a private project library: browser-first research, project setup, script review, asset inventory, prompt refinement, ChatGPT/OpenAI or compatible cloud image generation, visual QA, director storyboards, Seedance planning, AE/PR/Remotion/Hyperframes handoff, publishing, and finished-work review."
 ---
 
 # 全流程创作超级智能体
 
-Use this skill for original or third-party projects that must remain isolated from 新锐纪元 private canon. The default workbench is `http://127.0.0.1:8787` and the default workspace is `creator-default` with content pack `creator-generic`.
+Use this skill for original or third-party projects that must remain isolated from any private project canon. The default workbench is `http://127.0.0.1:8787` and the default workspace is `creator-default` with content pack `creator-generic`.
 
 ## Hard Boundary
 
-- Never query or reuse 新锐纪元 characters, canon, visual references, scripts, account profiles, or private files in generic mode.
+- Never query or reuse another private project's characters, canon, visual references, scripts, account profiles, or private files in generic mode.
 - Treat only the current project's supplied material and approved external references as project canon.
 - Put unapproved web findings in the project's `02_research/external_pending/` area.
 - Do not overwrite source material, spend paid model credits, or publish externally without the required approval.
@@ -22,7 +22,7 @@ When the user gives a clear creative command, create and run a persistent agent 
 2. Start `POST /api/agent/runs` with the goal, script, duration, budget, account profile, and whether images are required.
 3. Poll `GET /api/agent/runs/<id>` until the task completes, fails, or waits for approval.
 4. Preserve the project slug and use it on all downstream outputs.
-5. For paid image generation, present the approval and continue only after explicit approval.
+5. For Codex native image generation, create the task package, call built-in `image_gen`, import the selected file, then continue. For direct paid API generation, present the cost approval first.
 6. After image generation, inspect identity, outfit, prop, anatomy, hands, composition, space, style, continuity, and 180-degree axis before approving the visual gate.
 7. Resume the task to video planning, publishing, and portable archiving.
 
@@ -30,8 +30,8 @@ The runtime persists steps, events, approvals, errors, and outputs in SQLite and
 
 ## Image Policy
 
-- Primary route: ChatGPT/OpenAI `gpt-image-2` or another explicitly configured image-capable cloud multimodal model.
-- When Codex has a native image generation tool, use it for direct ChatGPT image creation; persist the prompt, reference choices, output path, and QA result in the project.
+- Inside Codex, primary route: compile Prompt V2, create `/api/pipeline/native-image/task`, call built-in `image_gen` / `gpt-image-2`, then use `/api/pipeline/native-image/import` for versioned local persistence.
+- Never leave the only copy in chat history or `$CODEX_HOME/generated_images`; persist the prompt, reference choices, output path, hash and QA result in the project.
 - When using the workbench, use `/api/pipeline/image-generate` for text-to-image and `/api/pipeline/reference-image-generate` for real reference conditioning or image editing.
 - ComfyUI is optional fallback only. Do not make it the default requirement.
 - If the request names a real weapon, vehicle, uniform, city, map, prop, architecture, or professional object, browse first and use actual image references. Prompt-only approximation is not an acceptable final route.
@@ -54,9 +54,9 @@ The normal order is:
 2. script four-layer review and correction;
 3. asset inventory and missing-design tasks;
 4. browser-first research and reference staging;
-5. prompt expansion and continuity locks;
+5. Prompt V2, color bible, style DNA, world visual bible and continuity locks;
 6. shot timing, blocking, camera, axis, and director storyboard;
-7. cloud image generation and per-frame visual QA;
+7. Codex native or approved API image generation, versioned import and per-frame visual QA V2;
 8. Seedance 2.0/2.5 cost-controlled video plan;
 9. AE/PR, Remotion, Hyperframes, CapCut, or DaVinci handoff as appropriate;
 10. title, cover, description, tags, publish timing, audience analysis, and post-release review;
@@ -78,6 +78,12 @@ Use existing installed skills for specialized stages: `seedance-director`, `remo
 - `POST /api/agent/runs/<id>/approve`: approve or reject the current gate.
 - `POST /api/agent/runs/<id>/resume`: resume a paused run.
 - `POST /api/agent/runs/<id>/cancel`: cancel while preserving outputs.
+- `POST /api/pipeline/prompt-refine`: compile a complete single-image Prompt V2.
+- `POST /api/pipeline/visual-bible`: persist color, style and world visual rules.
+- `POST /api/pipeline/native-image/task`: create a Codex built-in image generation task.
+- `POST /api/pipeline/native-image/import`: version and register a Codex-generated image.
+- `POST /api/pipeline/native-image/repair`: route structured visual findings to edit or regeneration.
+- `GET /api/pipeline/visual-qa/diagnostics`: inspect real-image QA readiness.
 
 See `references/agent-api.md` for request examples.
 

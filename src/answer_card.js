@@ -136,7 +136,7 @@ export function createAnswerCard(db, input = {}) {
   const query = compact(input.query || input.q || input.question || "");
   if (!query) {
     return {
-      standard: "xinrui-answer-card-v1",
+      standard: "creator-answer-card-v1",
       query,
       primary: null,
       claims: [],
@@ -174,7 +174,7 @@ export function createAnswerCard(db, input = {}) {
     }));
 
   return {
-    standard: "xinrui-answer-card-v1",
+    standard: "creator-answer-card-v1",
     query,
     mode,
     intents: inferIntent(query),

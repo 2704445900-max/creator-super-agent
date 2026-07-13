@@ -165,7 +165,7 @@ function buildLocalRewrite(input, evidence) {
 function buildLiteraturePrompt(input, evidence, localResult) {
   const dramaturgyRules = summarizeDramaturgyRulesForPrompt();
   return [
-    "你是《新锐纪元》IP 的小说编辑、剧作校准和文学化改写助手。",
+    "你是《当前项目》IP 的小说编辑、剧作校准和文学化改写助手。",
     "必须以资料库证据为准；证据不足的设定标记为待确认，不得新增角色关系、武器、组织或事件。",
     "输出简体中文，风格要像编辑部给作者的工作稿，不要宣传腔，不要空泛金句。",
     "任务包含：小说创作与校准、去 AI 味、文学化增强、角色弧光增强、按本地剧作参考形成规范。",
@@ -201,7 +201,7 @@ function fallbackLiteratureResult(input, evidence) {
     characters: input.characters
   });
   return {
-    standard: "xinrui-literary-expansion-v1",
+    standard: "creator-literary-expansion-v1",
     mode: input.mode || "expand",
     calibration,
     aiTraceFixes: aiTraces.length ? aiTraces.map((trace) => ({
@@ -270,12 +270,12 @@ export async function createLiteratureExpansion(db, config, input) {
     const prompt = buildLiteraturePrompt(normalized, evidence, fallback);
     const llm = await completeWithLlm(config, prompt, {
       temperature: 0.35,
-      system: "你是严谨的新锐纪元 IP 小说编辑和剧作校准助手，只能依据证据扩写，必须去除 AI 腔并保留文学细节。"
+      system: "你是严谨的当前项目 IP 小说编辑和剧作校准助手，只能依据证据扩写，必须去除 AI 腔并保留文学细节。"
     });
     if (llm.answer) {
       const parsed = tryParseJson(llm.answer);
       if (parsed && typeof parsed === "object") {
-        result = { standard: "xinrui-literary-expansion-v1", ...fallback, ...parsed };
+        result = { standard: "creator-literary-expansion-v1", ...fallback, ...parsed };
         llmUsed = true;
       } else {
         llmError = "模型返回内容不是可解析 JSON，已使用本地文学校准草稿。";

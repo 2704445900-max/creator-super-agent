@@ -91,7 +91,7 @@ function slugify(value) {
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
-  return source || `xinrui-project-${new Date().toISOString().slice(0, 10)}`;
+  return source || `creator-project-${new Date().toISOString().slice(0, 10)}`;
 }
 
 function unique(values) {
@@ -107,7 +107,7 @@ function unique(values) {
 }
 
 function inferNamesFromText(text) {
-  const known = ["林荫清", "韩梦雪", "唐舒嫣", "赵婷婷", "刘伊七", "刘梦鸳", "何墨缘", "叶敏慧", "李熙然"];
+  const known = ["项目主角", "项目角色A", "项目角色B", "项目角色C", "项目角色D", "项目角色G", "项目角色F", "项目角色H", "项目角色J"];
   const names = known.filter((name) => text.includes(name));
   const matches = [...text.matchAll(/[\u4e00-\u9fa5]{2,4}/g)]
     .map((match) => match[0])
@@ -294,7 +294,7 @@ export function createAssetInventory(db, input = {}) {
   const missing = categories.reduce((sum, item) => sum + item.missingTasks.length, 0);
   const existing = categories.reduce((sum, item) => sum + item.existing.length, 0);
   return {
-    standard: "xinrui-asset-inventory-v1",
+    standard: "creator-asset-inventory-v1",
     updatedAt: nowIso(),
     sourceRoot: SOURCE_ROOT,
     detectedCharacters: names,
@@ -309,7 +309,7 @@ export function createAssetInventory(db, input = {}) {
 }
 
 export function createProductionProject(db, input = {}) {
-  const title = compact(input.title || input.topic || "新锐纪元未命名项目");
+  const title = compact(input.title || input.topic || "当前项目未命名项目");
   const slug = slugify(input.slug || title);
   const projectPath = path.join(PROJECT_ROOT, slug);
   for (const folder of PROJECT_FOLDERS) ensureDir(path.join(projectPath, folder));
@@ -318,7 +318,7 @@ export function createProductionProject(db, input = {}) {
   }
 
   const project = {
-    standard: "xinrui-production-project-v1",
+    standard: "creator-production-project-v1",
     title,
     slug,
     createdAt: nowIso(),
@@ -375,7 +375,7 @@ export function createPromptRefinementPlan(db, input = {}) {
   const evidence = searchDatabase(db, [text], { limit: Number(input.limit || 8), mode: "precise" });
   const inventory = createAssetInventory(db, input);
   return {
-    standard: "xinrui-prompt-refinement-v1",
+    standard: "creator-prompt-refinement-v1",
     intent: compact(input.intent || "把模糊需求转成可生成图像的专业提示词"),
     promptStructure: [
       "画面目标：这张图必须让观众一眼理解什么。",
@@ -383,7 +383,7 @@ export function createPromptRefinementPlan(db, input = {}) {
       "道具锁：外观、尺寸、材质、握持方式、连接方式、功能状态。",
       "场景锁：空间结构、入口、遮挡物、光源、路线、平面图对应关系。",
       "镜头语言：景别、焦段、机位、运动、轴线、前中后景。",
-      "美术风格：新锐纪元本地风格 + 外部参考经过本地化后的视觉词。",
+      "美术风格：当前项目本地风格 + 外部参考经过本地化后的视觉词。",
       "负面约束：不改脸、不乱换服装、不混淆武器、不加无关文字、不破坏地图一致性。"
     ],
     image2ReadyGate: {

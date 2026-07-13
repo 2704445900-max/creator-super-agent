@@ -15,7 +15,7 @@ import { planStoryboardTiming, storyboardTimingToMarkdown } from "./storyboard_t
 import { ensureDir, fromJson, nowIso, snippet, toJson } from "./utils.js";
 
 const DEFAULT_NEGATIVE_PROMPT = "低清晰度, 人物崩坏, 错误武器, 错误制服, 文字水印, 多余手指, 过度血腥";
-const DEFAULT_ANIME_FILM_STYLE = "动画二次元电影级别画质，新锐纪元近未来东方美学，角色表演清晰，光影精致，镜头连续，适合动画过渡";
+const DEFAULT_ANIME_FILM_STYLE = "动画二次元电影级别画质，当前项目近未来东方美学，角色表演清晰，光影精致，镜头连续，适合动画过渡";
 
 function clampShotCount(value) {
   const count = Number(value || 6);
@@ -61,7 +61,7 @@ function evidenceStoryHints(evidence) {
 function inferStorySpine(script, evidence, shotCount) {
   const text = String(script || "");
   const hints = evidenceStoryHints(evidence);
-  const isDateStory = /约会|街头|夕阳|恋|爱人|手机|合照|王明德/.test(text);
+  const isDateStory = /约会|街头|夕阳|恋|爱人|手机|合照|项目关联角色/.test(text);
   const isActionStory = /潜入|任务|行动|撤离|战斗|枪|武器|异常|信号/.test(text);
   const spine = isDateStory ? [
     "感知：夕阳、人流和私人时间让两人暂时离开任务身份。",
@@ -260,7 +260,7 @@ function buildStoryboardPrompt(input, evidence, fallbackShots) {
   };
 
   return [
-    "你是《新锐纪元》IP的分镜导演和设定校对助手。",
+    "你是《当前项目》IP的分镜导演和设定校对助手。",
     "请只依据资料库证据和用户剧本生成分镜，不确定的设定不要编造。",
     "输出必须是 JSON 数组，不能有 Markdown。每个元素包含：shot_index, scene_text, camera, composition, character_action, storyboard_description, transition_note, visual_prompt, negative_prompt, characters, evidence_refs。",
     "故事板的目标是服务动画过渡：每个镜头必须说明承接上一镜、推进本镜、引向下一镜。",
@@ -561,8 +561,8 @@ export function storyboardPromptPackToMarkdown(pack) {
     `- 项目ID：${pack.project.id}`,
     `- 镜头数：${pack.project.shotCount}`,
     pack.project.totalDurationSec ? `- 目标总时长：${pack.project.totalDurationSec}s` : "",
-    `- 提示词规范：${pack.project.promptStandard || "xinrui-storyboard-v1"}`,
-    `- 导演模式：${pack.project.directorStandard || "xinrui-director-storyboard-v1"}`,
+    `- 提示词规范：${pack.project.promptStandard || "creator-storyboard-v1"}`,
+    `- 导演模式：${pack.project.directorStandard || "creator-director-storyboard-v1"}`,
     `- 目标视频模型：${pack.project.director?.targetModel || "Seedance 2.0"}`,
     `- 画幅/FPS：${pack.project.director?.aspectRatio || "16:9"} / ${pack.project.director?.fps || 24}fps`,
     `- 生成模式：${pack.project.llmUsed ? "大模型优化" : "本地草稿"}`,

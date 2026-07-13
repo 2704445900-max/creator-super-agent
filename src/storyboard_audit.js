@@ -32,7 +32,7 @@ export function buildSingleFrameSelfCheck(pack, shot, frame = null, illustration
   ].filter(Boolean).map(compact);
 
   return {
-    standard: "xinrui-single-frame-self-check-v1",
+    standard: "creator-single-frame-self-check-v1",
     shot: shotNo(shot.index || shot.shot_index || 1),
     title: illustration?.title || compact(shot.scene) || "分镜图",
     preGeneration: [
@@ -82,7 +82,7 @@ export function buildStoryboardAuditPack(pack, framePack = null, illustrationPac
   ));
 
   return {
-    standard: "xinrui-storyboard-single-frame-audit-pack-v1",
+    standard: "creator-storyboard-single-frame-audit-pack-v1",
     project: pack?.project || null,
     frameCount: checks.length,
     scope: "逐张分镜图生成前后自检；覆盖角色、道具、180度轴线、手部动作、场景空间、画风和连续性。",

@@ -3,14 +3,14 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>全流程创作超级智能体</title>
+    <title>当前项目 IP 数据库</title>
     <link rel="stylesheet" href="/styles.css">
   </head>
   <body>
     <div class="app-shell">
       <header class="topbar">
         <div>
-          <h1 id="appTitle">全流程创作超级智能体</h1>
+          <h1 id="appTitle">当前项目 IP 数据库</h1>
           <p id="runtimeStatus">正在连接智能体...</p>
         </div>
         <div class="topbar-actions">
@@ -37,7 +37,7 @@
             </div>
             <label class="field-row" for="questionInput">
               <span>问题</span>
-              <textarea id="questionInput" rows="4" placeholder="例如：韩梦雪在队内是什么定位？"></textarea>
+              <textarea id="questionInput" rows="4" placeholder="例如：项目角色A在队内是什么定位？"></textarea>
             </label>
             <div class="button-row">
               <button id="askButton" class="primary" type="button">提问</button>
@@ -106,7 +106,7 @@
             <h2>设定完善</h2>
             <label class="field-row" for="settingTargetName">
               <span>目标实体</span>
-              <input id="settingTargetName" type="text" placeholder="例如：韩梦雪">
+              <input id="settingTargetName" type="text" placeholder="例如：项目角色A">
             </label>
             <label class="field-row" for="settingTargetType">
               <span>实体类型</span>
@@ -134,7 +134,7 @@
             <h2>视觉资产甄别</h2>
             <label class="field-row" for="visualQuery">
               <span>检索目标</span>
-              <input id="visualQuery" type="text" placeholder="例如：韩梦雪 角色参考 / 龙醒计划 分镜">
+              <input id="visualQuery" type="text" placeholder="例如：项目角色A 角色参考 / 示例视频项目 分镜">
             </label>
             <div class="compact-grid">
               <label class="field-row" for="visualRole">
@@ -171,7 +171,7 @@
             <h2>专业参考计划</h2>
             <label class="field-row" for="referenceQuery">
               <span>参考目标</span>
-              <input id="referenceQuery" type="text" placeholder="例如：韩梦雪 潜入 军装 武器 动态参考">
+              <input id="referenceQuery" type="text" placeholder="例如：项目角色A 潜入 军装 武器 动态参考">
             </label>
             <label class="field-row" for="referenceFocus">
               <span>重点</span>
@@ -190,7 +190,7 @@
             <h2>全流程创作</h2>
             <label class="field-row" for="workflowTopic">
               <span>创作目标</span>
-              <input id="workflowTopic" type="text" placeholder="例如：林小队楼内潜入 15 秒动画">
+              <input id="workflowTopic" type="text" placeholder="例如：当前项目团队楼内潜入 15 秒动画">
             </label>
             <label class="field-row" for="workflowScript">
               <span>剧本 / 情节</span>
@@ -203,7 +203,7 @@
             <h2>智能执行 / 成本控制</h2>
             <label class="field-row" for="pipelineTopicInput">
               <span>创作指令</span>
-              <input id="pipelineTopicInput" type="text" placeholder="例如：林荫清雨夜潜入，做15秒手书分镜">
+              <input id="pipelineTopicInput" type="text" placeholder="例如：项目主角雨夜潜入，做15秒手书分镜">
             </label>
             <label class="field-row" for="pipelinePromptInput">
               <span>单帧提示词 / 画面意图</span>
@@ -214,8 +214,19 @@
               <textarea id="pipelineScriptInput" rows="6" placeholder="输入明确创作任务后，可生成详细创作方案和自动执行管线。"></textarea>
             </label>
             <label class="field-row" for="pipelineImagePathInput">
-              <span>待检查图片路径</span>
-              <input id="pipelineImagePathInput" type="text" placeholder="可选：F:\...\storyboard.png">
+              <span>生成图 / 待检查图片路径</span>
+              <input id="pipelineImagePathInput" type="text" placeholder="Codex 生图后填写本地图片路径，例如：C:\Users\...\generated.png">
+            </label>
+            <label class="field-row" for="pipelineNativeTaskDirectoryInput">
+              <span>Codex 原生生图任务目录</span>
+              <input id="pipelineNativeTaskDirectoryInput" type="text" placeholder="创建任务后自动填写，无需手动寻找">
+            </label>
+            <label class="field-row" for="pipelineImageExecutionInput">
+              <span>图像执行方式</span>
+              <select id="pipelineImageExecutionInput">
+                <option value="codex_native">Codex 原生 image-2（默认，生成后落盘）</option>
+                <option value="workbench_api">工作台 OpenAI Images API</option>
+              </select>
             </label>
             <label class="field-row" for="pipelineReferenceImageInput">
               <span>图生图参考图路径 / fileId</span>
@@ -232,7 +243,7 @@
             </label>
             <label class="toggle-row" for="pipelineReferenceExecuteInput">
               <input id="pipelineReferenceExecuteInput" type="checkbox">
-              <span>立即调用已配置的图像后端生成（适用于文生图/图生图，会消耗额度）</span>
+              <span>工作台 API 路线立即执行（文生图/图生图，可能消耗额度）</span>
             </label>
             <div class="compact-grid">
               <label class="field-row" for="pipelineDurationInput">
@@ -259,9 +270,51 @@
                 </select>
               </label>
             </div>
+            <div class="compact-grid">
+              <label class="field-row" for="pipelineLightingPresetInput">
+                <span>布光方案</span>
+                <select id="pipelineLightingPresetInput">
+                  <option value="cinematic-balanced">电影化动机光</option>
+                  <option value="low-key-rain-night">雨夜高反差</option>
+                  <option value="sunlit-coastal">日光与海岸反射</option>
+                  <option value="dramatic-directional">战术方向性光源</option>
+                </select>
+              </label>
+              <label class="field-row" for="pipelineColorMoodInput">
+                <span>全局色彩</span>
+                <select id="pipelineColorMoodInput">
+                  <option value="creator-cinematic">当前项目电影色彩</option>
+                  <option value="rain-night-tension">雨夜冷暖对比</option>
+                  <option value="coastal-leisure">海岸日光</option>
+                  <option value="tactical-pressure">战术工业色</option>
+                </select>
+              </label>
+            </div>
+            <div class="compact-grid">
+              <label class="field-row" for="pipelineStyleProfileInput">
+                <span>设计语言</span>
+                <select id="pipelineStyleProfileInput">
+                  <option value="tactical-anime-industrial">战术二次元工业设计</option>
+                  <option value="anime-action-energy">高动态动画演出</option>
+                  <option value="military-aaa-realism">3A 军事写实</option>
+                  <option value="urban-open-world">都市开放世界</option>
+                  <option value="retro-future-industrial">复古未来工业</option>
+                  <option value="chinese-mythic-aaa">东方神话 3A</option>
+                </select>
+              </label>
+              <label class="field-row" for="pipelineDynamicIntensityInput">
+                <span>动态张力（0-100）</span>
+                <input id="pipelineDynamicIntensityInput" type="number" min="0" max="100" step="5" value="70">
+              </label>
+            </div>
             <div class="button-row">
               <button id="pipelinePromptRefineButton" class="primary" type="button">细化单帧提示词</button>
               <button id="pipelineAutoExecuteButton" type="button">自动管线</button>
+            </div>
+            <div class="button-row">
+              <button id="pipelineVisualBibleButton" type="button">生成视觉圣经</button>
+              <button id="pipelineNativeImageTaskButton" class="primary" type="button">创建 Codex 生图任务</button>
+              <button id="pipelineNativeImageImportButton" type="button">导入 Codex 图片</button>
             </div>
             <div class="button-row">
               <button id="pipelineCreativePlanButton" type="button">详细创作方案</button>
@@ -269,12 +322,13 @@
               <button id="pipelineCostButton" type="button">成本估算</button>
             </div>
             <div class="button-row">
-              <button id="pipelineImageGenerateButton" class="primary" type="button">生成 gpt-image-2 图像</button>
+              <button id="pipelineImageGenerateButton" type="button">工作台 API 文生图</button>
               <button id="pipelineReferenceGenerateButton" class="primary" type="button">创建图生图参考任务</button>
               <button id="pipelineImageDiagnosticsButton" type="button">图像后端诊断</button>
             </div>
             <div class="button-row">
               <button id="pipelineCreativeSuiteButton" type="button">创作插件套件</button>
+              <button id="pipelineVisualQaDiagnosticsButton" type="button">视觉 QA 诊断</button>
             </div>
           </div>
 
@@ -282,7 +336,7 @@
             <h2>剧本四层审查</h2>
             <label class="field-row" for="dramaturgyCharacters">
               <span>相关角色</span>
-              <input id="dramaturgyCharacters" type="text" placeholder="例如：林荫清 韩梦雪">
+              <input id="dramaturgyCharacters" type="text" placeholder="例如：项目主角 项目角色A">
             </label>
             <label class="field-row" for="dramaturgyIntent">
               <span>审查目标</span>
@@ -302,11 +356,11 @@
             <h2>项目制生产</h2>
             <label class="field-row" for="projectTitleInput">
               <span>项目名称</span>
-              <input id="projectTitleInput" type="text" placeholder="例如：林荫清雨夜潜入手书">
+              <input id="projectTitleInput" type="text" placeholder="例如：项目主角雨夜潜入手书">
             </label>
             <label class="field-row" for="projectIntentInput">
               <span>项目目标</span>
-              <textarea id="projectIntentInput" rows="3" placeholder="例如：做一支 15 秒 B站预告，突出林荫清的冷静判断和战术美感。"></textarea>
+              <textarea id="projectIntentInput" rows="3" placeholder="例如：做一支 15 秒 B站预告，突出项目主角的冷静判断和战术美感。"></textarea>
             </label>
             <label class="field-row" for="projectScriptInput">
               <span>剧情 / 需求</span>
@@ -342,7 +396,7 @@
             <h2>后期与迁移</h2>
             <label class="field-row" for="postTopicInput">
               <span>视频 / 角色目标</span>
-              <input id="postTopicInput" type="text" placeholder="例如：林荫清 AE 手书动画 / 新锐纪元 15 秒预告">
+              <input id="postTopicInput" type="text" placeholder="例如：项目主角 AE 手书动画 / 当前项目 15 秒预告">
             </label>
             <div class="button-row">
               <button id="buildRiggingPlanButton" type="button">AE拆图规范</button>
@@ -358,7 +412,7 @@
             <h2>B站宣发 / 日更</h2>
             <label class="field-row" for="publishingTopic">
               <span>选题</span>
-              <input id="publishingTopic" type="text" placeholder="例如：韩梦雪潜入行动">
+              <input id="publishingTopic" type="text" placeholder="例如：项目角色A潜入行动">
             </label>
             <label class="field-row" for="publishingScript">
               <span>内容简介</span>
@@ -374,7 +428,7 @@
             <h2>剧本分镜</h2>
             <label class="field-row" for="storyTitle">
               <span>项目标题</span>
-              <input id="storyTitle" type="text" placeholder="例如：韩梦雪潜入行动分镜">
+              <input id="storyTitle" type="text" placeholder="例如：项目角色A潜入行动分镜">
             </label>
             <label class="field-row" for="storyScript">
               <span>剧本片段</span>
@@ -448,11 +502,11 @@
             <h2>文学拓展</h2>
             <label class="field-row" for="literatureCharacters">
               <span>相关角色</span>
-              <input id="literatureCharacters" type="text" placeholder="例如：林荫清 韩梦雪">
+              <input id="literatureCharacters" type="text" placeholder="例如：项目主角 项目角色A">
             </label>
             <label class="field-row" for="literatureIntent">
               <span>创作/校准目标</span>
-              <textarea id="literatureIntent" rows="3" placeholder="例如：增强韩梦雪在潜入行动中的角色弧光，去掉提纲感和 AI 腔。"></textarea>
+              <textarea id="literatureIntent" rows="3" placeholder="例如：增强项目角色A在潜入行动中的角色弧光，去掉提纲感和 AI 腔。"></textarea>
             </label>
             <label class="field-row" for="literatureText">
               <span>小说片段</span>

@@ -28,4 +28,45 @@ for (let index = 0; index < 60 && ["queued", "running"].includes(current.status)
 }
 if (current.status !== "completed") throw new Error(`Agent smoke failed: ${current.status} ${current.error || ""}`);
 if (!current.plan || !current.projectSlug) throw new Error("Agent smoke did not persist plan/project state.");
-console.log(JSON.stringify({ ok: true, runtime: runtime.standard, runId: current.id, steps: current.steps.length, projectSlug: current.projectSlug }, null, 2));
+
+const nativeRun = await request("/api/agent/runs", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    workspaceId: "creator-default",
+    contentPackId: "creator-generic",
+    title: "agent-native-image-smoke",
+    goal: "Create one original cinematic storyboard illustration",
+    script: "A station technician raises a work light and checks the flooded tunnel.",
+    durationSec: 6,
+    generateImages: true,
+    imageExecutionMode: "codex_native",
+    useLlm: false,
+    requireVisualApproval: true,
+    autoStart: true
+  })
+});
+let nativeCurrent = nativeRun;
+for (let index = 0; index < 120 && ["queued", "running"].includes(nativeCurrent.status); index += 1) {
+  await new Promise((resolve) => setTimeout(resolve, 250));
+  nativeCurrent = await request(`/api/agent/runs/${encodeURIComponent(nativeRun.id)}`);
+}
+const nativeApproval = (nativeCurrent.approvals || []).find((item) => item.status === "pending");
+if (nativeCurrent.status !== "waiting_approval" || nativeApproval?.type !== "codex_native_image_generation") {
+  throw new Error(`Native image agent did not reach Codex approval gate: ${nativeCurrent.status}`);
+}
+if (!nativeCurrent.state?.nativeImageTask?.outputDir || !nativeApproval.request?.task?.files?.promptMarkdown) {
+  throw new Error("Native image task was not persisted before approval.");
+}
+await request(`/api/agent/runs/${encodeURIComponent(nativeRun.id)}/cancel`, { method: "POST" });
+
+console.log(JSON.stringify({
+  ok: true,
+  runtime: runtime.standard,
+  runId: current.id,
+  steps: current.steps.length,
+  projectSlug: current.projectSlug,
+  nativeRunId: nativeCurrent.id,
+  nativeApproval: nativeApproval.type,
+  nativeTaskDirectory: nativeCurrent.state.nativeImageTask.outputDir
+}, null, 2));

@@ -5,10 +5,10 @@ import { createCreativeSuitePlan } from "./creative_suite.js";
 
 const ACCOUNT_PROFILE = {
   platform: "bilibili",
-  accountName: "新锐纪元企划",
-  authorName: "和平莱茵兔",
+  accountName: "当前项目",
+  authorName: "项目创作者",
   homepage: "<ACCOUNT_URL>",
-  positioning: "东方战术美少女、近未来、反战人文、林小队群像、战术科幻与中国式人文"
+  positioning: "东方战术美少女、近未来、反战人文、当前项目团队群像、战术科幻与中国式人文"
 };
 
 const PHOTOSHOP_PATH = "<ADOBE_ROOT>\\Adobe Photoshop 2021";
@@ -54,7 +54,7 @@ function termsFromText(value) {
 function inferNamedSubjects(topic, script) {
   const text = `${topic || ""} ${script || ""}`;
   const names = [];
-  const directKnown = ["林荫清", "王明德", "韩梦雪", "唐舒嫣", "赵婷婷", "刘伊七", "刘梦鸳", "何墨缘", "叶敏慧", "李熙然"];
+  const directKnown = ["项目主角", "项目关联角色", "项目角色A", "项目角色B", "项目角色C", "项目角色D", "项目角色G", "项目角色F", "项目角色H", "项目角色J"];
   for (const name of directKnown) {
     if (text.includes(name)) names.push(name);
   }
@@ -92,19 +92,19 @@ function inferHooks(topic, script) {
   const text = `${topic} ${script}`;
   const hooks = [];
   if (/潜入|任务|行动|撤离|战斗|枪|武器/.test(text)) hooks.push("任务一开始就出现异常信号，观众先看到危险，再补充原因。");
-  if (/林荫清|韩梦雪|唐舒嫣|赵婷婷/.test(text)) hooks.push("用角色选择开场：她不是解释设定，而是在压力下做出一个有代价的动作。");
-  if (/法特提|古蒂斯|阴谋|敌人/.test(text)) hooks.push("封面和标题突出反派压力，不提前泄露全部真相。");
+  if (/项目主角|项目角色A|项目角色B|项目角色C/.test(text)) hooks.push("用角色选择开场：她不是解释设定，而是在压力下做出一个有代价的动作。");
+  if (/示例对手组织A|示例对手组织B|阴谋|敌人/.test(text)) hooks.push("封面和标题突出反派压力，不提前泄露全部真相。");
   if (!hooks.length) hooks.push("用一个清晰的问题开场：这次行动为什么不能失败？");
   return hooks.slice(0, 3);
 }
 
 function buildTitleCandidates(topic, script) {
-  const target = compact(topic) || "林小队新任务";
+  const target = compact(topic) || "当前项目团队新任务";
   const hooks = inferHooks(topic, script);
   return unique([
     `${target}：她在开门前听见了不该出现的信号`,
-    `15秒看懂新锐纪元：${target}的第一次危险判断`,
-    `林小队行动记录：${target}背后的异常线索`,
+    `15秒看懂当前项目：${target}的第一次危险判断`,
+    `当前项目团队行动记录：${target}背后的异常线索`,
     `近未来战术少女动画分镜：${target}`,
     `当任务简报失效，她们只能相信自己的判断`,
     hooks[0] ? hooks[0].replace(/[：:。]/g, "").slice(0, 36) : ""
@@ -122,7 +122,7 @@ function buildCoverBrief(topic, script, evidence) {
   const confirmedCount = characters.filter((name) => evidenceCharacters.includes(name)).length;
   return {
     title: "动画封面设计",
-    mainSubject: characters.length ? characters.join("、") : "林小队成员",
+    mainSubject: characters.length ? characters.join("、") : "当前项目团队成员",
     canonStatus: confirmedCount === characters.length && characters.length
       ? "资料库确认"
       : confirmedCount > 0
@@ -150,7 +150,7 @@ function buildLocalStoryArrangement(topic, script, evidence) {
     ...(picked.entities || []).map((item) => `${item.name}：${item.summary || "资料库实体"}`),
     ...(picked.claims || []).map((item) => `${item.claim}（${item.type}）`)
   ].filter(Boolean).slice(0, 8);
-  const isDateStory = /约会|街头|夕阳|恋|爱人|手机|合照|王明德/.test(text);
+  const isDateStory = /约会|街头|夕阳|恋|爱人|手机|合照|项目关联角色/.test(text);
   const isActionStory = /潜入|任务|行动|撤离|战斗|枪|武器|异常|信号/.test(text);
   const narrativeSpine = isDateStory ? [
     "建立场景：先交代私人时间、街头夕阳和两人的距离。",
@@ -172,9 +172,9 @@ function buildLocalStoryArrangement(topic, script, evidence) {
     "用环境、道具或姿态收束到一个清晰余韵。"
   ];
   return {
-    standard: "xinrui-local-evidence-story-arrangement-v1",
+    standard: "creator-local-evidence-story-arrangement-v1",
     inputHasExplicitStoryDetails,
-    defaultVisualStyle: "动画二次元电影级别画质，新锐纪元近未来东方美学，角色表演清晰，光影精致，镜头连续；除非用户明确要求其他画风，均以此为根本延伸。",
+    defaultVisualStyle: "动画二次元电影级别画质，当前项目近未来东方美学，角色表演清晰，光影精致，镜头连续；除非用户明确要求其他画风，均以此为根本延伸。",
     animationPurpose: "故事板不是静态美图合集，而是为创作过渡流畅的动画服务；每格都要交代动作、视线、道具状态或情绪如何流向下一格。",
     localWritingPrinciple: "采用本地剧本创作原则中的感知-运动影像链条：感知→运动→新感知→新运动，用因果驱动镜头，而不是并列堆画面。",
     triggerRule: inputHasExplicitStoryDetails
@@ -204,12 +204,12 @@ function buildVideoPromptPack(topic, script, goal) {
   const text = `${topic || ""} ${script || ""} ${goal || ""}`;
   const characters = inferNamedSubjects(topic, script);
   const mainCharacter = characters[0] || "主角";
-  const title = compact(topic || goal || "新锐纪元 15 秒短片");
-  const isLinYinqing = text.includes("林荫清");
+  const title = compact(topic || goal || "当前项目 15 秒短片");
+  const isLinYinqing = text.includes("项目主角");
   const hasQbz81 = /QBZ-?81|81式|Type\s*81/i.test(text);
   const hasRangeTraining = /靶场|打靶|射击|训练|枪/.test(text);
   const characterLock = isLinYinqing
-    ? "林荫清，年轻东亚女性，深棕色短波波头，侧分刘海，琥珀红眼睛，小红色发夹，冷静、聪明、克制的神情，白黑近未来训练装甲，少量红色点缀，黑色手套，灰色战术靴，实用、非性感化、全覆盖训练装备。"
+    ? "项目主角，严格使用当前项目已确认的身份锚、体型、发型和单一服装设计。"
     : `${mainCharacter}，保持资料库确认的身份、脸型、发型、服装、表情和角色气质，避免换脸、换服装或变成无关角色。`;
   const propLock = hasQbz81
     ? "QBZ-81 / 81式风格训练步枪，黑色主体，橙色识别点缀，弯曲弹匣，长枪管与准星轮廓，现代化瞄具，所有镜头保持同一造型；作为训练道具，不写入正史常用武器。"
@@ -224,9 +224,9 @@ function buildVideoPromptPack(topic, script, goal) {
     "不要把训练道具画成错误武器、无托步枪、西式 AR 平台或科幻激光枪",
     "不要性感姿势、Q 版风格、水印、Logo 或画面内说明文字"
   ];
-  const masterPrompt = `生成一支 15 秒、16:9、具有 24fps 电影感的动画视频。主题：${title}。${characterLock}${sceneLock}${propLock}镜头从建立环境开始，逐步推进到角色中景、动作准备、关键训练瞬间、节奏切片、眼部情绪特写、安全收束和宽景结尾。整体风格为新锐纪元近未来东方战术动画，电影分镜质感，线条精致，光线克制，强调角色压力、专业感和自我校准。全片保持角色身份、服装、道具、场景方向和镜头轴线连续。${negativeConstraints.join("；")}。`;
+  const masterPrompt = `生成一支 15 秒、16:9、具有 24fps 电影感的动画视频。主题：${title}。${characterLock}${sceneLock}${propLock}镜头从建立环境开始，逐步推进到角色中景、动作准备、关键训练瞬间、节奏切片、眼部情绪特写、安全收束和宽景结尾。整体风格为当前项目近未来东方战术动画，电影分镜质感，线条精致，光线克制，强调角色压力、专业感和自我校准。全片保持角色身份、服装、道具、场景方向和镜头轴线连续。${negativeConstraints.join("；")}。`;
   return {
-    standard: "xinrui-seedance2-video-prompt-pack-v1",
+    standard: "creator-seedance2-video-prompt-pack-v1",
     model: "Seedance 2.0",
     workflowPosition: "统一故事板总图确认后、Premiere 粗剪前；用于文生视频或图生视频分段生成。",
     outputPath: "output/projects/<project-slug>/05_animation/seedance2.0/",
@@ -235,7 +235,7 @@ function buildVideoPromptPack(topic, script, goal) {
       "一次性 15 秒总提示词用于先试整体氛围，不作为最终连续性最稳方案。",
       "每段生成时都附带全局锁定词和通用负面词。"
     ],
-    globalLocks: [characterLock, propLock, sceneLock, "新锐纪元近未来东方战术动画，电影分镜质感，克制光线，非战斗训练或剧情语境。"],
+    globalLocks: [characterLock, propLock, sceneLock, "当前项目近未来东方战术动画，电影分镜质感，克制光线，非战斗训练或剧情语境。"],
     negativeConstraints,
     masterPrompt,
     shotPrompts: [
@@ -317,7 +317,7 @@ export function createWorkflowPlan(db, input = {}) {
     targetDurationSec: input.targetDurationSec || input.durationSec || 15
   });
   return {
-    standard: "xinrui-creative-workflow-v1",
+    standard: "creator-creative-workflow-v1",
     goal,
     accountProfile: resolveAccountProfile(input),
     evidence: pickEvidence(evidence),
@@ -401,7 +401,7 @@ export function createWorkflowPlan(db, input = {}) {
           "Remotion: use React/TypeScript motion for title cards, HUD, subtitles, social variants, and deterministic overlays.",
           "Hyperframes: use HTML/CSS/media-to-video when a shot is better expressed as designed motion than video-model generation.",
           "UI/UX Pro Max: use for workbench panels, prompt editors, evidence dashboards, and portable HTML exports.",
-          "Godogen/Game Studio: use when a Xinrui script, mission, or character should become a Godot prototype or GDD."
+          "Godogen/Game Studio: use when a Creator script, mission, or character should become a Godot prototype or GDD."
         ]
       },
       {
@@ -421,23 +421,23 @@ export function createWorkflowPlan(db, input = {}) {
 }
 
 export function createBilibiliPublishingPlan(db, input = {}) {
-  const topic = compact(input.topic || input.title || "新锐纪元企划短动画");
+  const topic = compact(input.topic || input.title || "当前项目短动画");
   const script = compact(input.script || input.text || "");
   const evidence = searchDatabase(db, [`${topic} ${script}`], { limit: Number(input.limit || 8), mode: "precise" });
-  const tags = unique(["新锐纪元企划", "原创动画", "战术科幻", "二次元", "分镜", ...termsFromText(topic).slice(0, 4)]);
+  const tags = unique(["当前项目", "原创动画", "战术科幻", "二次元", "分镜", ...termsFromText(topic).slice(0, 4)]);
   return {
-    standard: "xinrui-bilibili-publishing-v1",
+    standard: "creator-bilibili-publishing-v1",
     accountProfile: resolveAccountProfile(input),
     trendInputs: [
       "B站热门榜观察：题材、封面主体、标题问题感、视频时长、互动点",
       "同类动画/战术/二次元内容观察：高可读角色脸、明确动作、少字封面",
       "本地资料库观察：角色状态、故事线、视觉资产是否充足"
     ],
-    positioning: "先让观众看懂角色正在承受什么压力，再逐步展示新锐纪元的世界观。",
+    positioning: "先让观众看懂角色正在承受什么压力，再逐步展示当前项目的世界观。",
     titleCandidates: buildTitleCandidates(topic, script),
     coverBrief: buildCoverBrief(topic, script, evidence),
     description: [
-      `《新锐纪元企划》原创动画分镜：${topic}`,
+      `《当前项目》原创动画分镜：${topic}`,
       "一群东方战术美少女，在近未来的复杂局势中寻找真相。",
       "本条为15秒动画/故事板测试，欢迎指出最想继续看的角色和剧情线。"
     ].join("\n"),
@@ -452,7 +452,7 @@ export function createBilibiliPublishingPlan(db, input = {}) {
 }
 
 export function createDailyStoryBrief(db, input = {}) {
-  const topic = compact(input.topic || input.keyword || "今日新锐纪元企划故事");
+  const topic = compact(input.topic || input.keyword || "今日当前项目故事");
   const hotspot = compact(input.hotspot || "手动输入热点或从 B站热门榜观察获得");
   const query = `${topic} ${hotspot}`;
   const evidence = searchDatabase(db, [query], { limit: Number(input.limit || 8), mode: "precise" });
@@ -464,7 +464,7 @@ export function createDailyStoryBrief(db, input = {}) {
     accountProfile: input.accountProfile
   });
   return {
-    standard: "xinrui-daily-story-brief-v1",
+    standard: "creator-daily-story-brief-v1",
     date: new Date().toLocaleDateString("zh-CN"),
     accountProfile: resolveAccountProfile(input),
     hotspotMonitor: {
@@ -473,7 +473,7 @@ export function createDailyStoryBrief(db, input = {}) {
       defaultAutomation: "未创建定时任务；建议 09:30 生成选题，20:00 生成复盘。"
     },
     dailyStory: {
-      logline: `围绕“${topic}”，让林小队在一个具体任务压力下做出选择。`,
+      logline: `围绕“${topic}”，让当前项目团队在一个具体任务压力下做出选择。`,
       conflict: "外部任务目标与角色内在顾虑冲突，结尾留下一条可连载的线索。",
       canonBoundary: "角色、组织、武器和事件必须回到资料库证据；缺证据标待确认。"
     },
