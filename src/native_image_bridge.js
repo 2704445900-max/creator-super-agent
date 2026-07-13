@@ -81,6 +81,12 @@ export function createCodexNativeImageTask(input = {}, promptPlan = {}) {
     executionMode: "codex_native_image_gen",
     builtInTool: "image_gen",
     modelFamily: "gpt-image-2",
+    conversationPresentation: {
+      required: true,
+      order: ["generate_with_image_gen", "display_inline_in_current_conversation", "persist_versioned_copy", "run_visual_qa"],
+      rule: "Codex must return the built-in image_gen result as an inline image in the current conversation. A text-only success message or local path is incomplete.",
+      fallback: "After import, render the versioned outputPath with Markdown image syntax using its absolute local path."
+    },
     projectSlug: input.projectSlug || "",
     topic: input.topic || input.title || "",
     outputDir,
@@ -110,6 +116,22 @@ export function createCodexNativeImageTask(input = {}, promptPlan = {}) {
     requestJson: path.join(outputDir, "native-image-request.json"),
     promptMarkdown: path.join(outputDir, "codex-image-prompt.md"),
     importGuide: path.join(outputDir, "import-instructions.md")
+  };
+  task.handoff = {
+    target: "current_codex_conversation",
+    automaticDispatch: false,
+    limitation: "The browser workbench cannot inject messages, tool calls, or images into the current Codex conversation.",
+    action: "copy_and_send",
+    copyLabel: "复制 Codex 执行指令",
+    instruction: [
+      `执行工作台 Codex 原生生图任务：${taskId}`,
+      `读取提示词文件：${files.promptMarkdown}`,
+      `读取任务文件：${files.requestJson}`,
+      "核对任务中的身份、单一服装、道具、场景和现实参考锁。",
+      "调用内置 image_gen / gpt-image-2 生成图片。",
+      "先把生成结果直接显示在当前对话中，不要只回复文字或路径。",
+      "然后把同一张图片版本化导入工作台，并执行视觉 QA。"
+    ].join("\n")
   };
   fs.writeFileSync(files.requestJson, `${JSON.stringify(task, null, 2)}\n`, "utf8");
   fs.writeFileSync(files.promptMarkdown, `# Codex 原生 image-2 提示词\n\n\`\`\`text\n${prompt}\n\`\`\`\n`, "utf8");
@@ -156,7 +178,14 @@ export function importCodexNativeImage(input = {}) {
     sha256: sha256File(targetPath),
     promptSha256: crypto.createHash("sha256").update(task.prompt || "", "utf8").digest("hex"),
     status: "imported_visual_review_required",
-    previousVersions: versions.sort((a, b) => a - b)
+    previousVersions: versions.sort((a, b) => a - b),
+    conversationPresentation: {
+      required: true,
+      displayedByBuiltInTool: input.conversationImageDisplayed === true,
+      localPath: targetPath,
+      markdown: `![生成图](<${targetPath.replaceAll("\\", "/")}>)`,
+      rule: "Show this image in the current Codex conversation as well as keeping the versioned project copy."
+    }
   };
   fs.writeFileSync(path.join(taskDir, `image-v${String(version).padStart(3, "0")}-manifest.json`), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
   fs.writeFileSync(requestPath, `${JSON.stringify({ ...task, status: manifest.status, latestResult: manifest }, null, 2)}\n`, "utf8");

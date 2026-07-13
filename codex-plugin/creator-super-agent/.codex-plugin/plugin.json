@@ -1,7 +1,7 @@
 {
   "name": "creator-super-agent",
-  "version": "0.2.0+codex.local-20260713-004348",
-  "description": "A portable full-pipeline creator agent with Prompt V2, Codex native gpt-image-2 generation, versioned local persistence, visual QA V2, deterministic storyboards, video planning, post-production, publishing, and review without binding to a private IP library.",
+  "version": "0.2.1+codex.local-20260713-032908",
+  "description": "A portable full-pipeline creator agent with Prompt V2, Codex native gpt-image-2 inline conversation display, versioned local persistence, visual QA V2, deterministic storyboards, video planning, post-production, publishing, and review without binding to a private IP library.",
   "author": {
     "name": "Creator Studio"
   },
@@ -13,6 +13,7 @@
     "storyboard",
     "gpt-image-2",
     "codex-native-image-generation",
+    "inline-image-display",
     "prompt-v2",
     "visual-qa-v2",
     "deterministic-storyboard-assembly",

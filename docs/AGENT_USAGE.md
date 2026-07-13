@@ -9,17 +9,21 @@ This public edition is a project-neutral production agent. It contains no privat
 3. Let the agent research missing real-world details in the browser and save pending references for review.
 4. Build the asset inventory, visual bible, Prompt V2 and director storyboard.
 5. Use Codex built-in `image_gen` / `gpt-image-2` for image generation.
-6. Import every selected image into the project through the native-image endpoint so it receives a version, prompt hash and image hash.
-7. Run visual QA V2. Repair local defects or regenerate structural failures; stop automatic repair after two rounds.
-8. Assemble the unified storyboard only from approved frames.
-9. Continue to Seedance, Remotion, Hyperframes, AE, PR or another configured post-production route.
-10. Review publishing, audience and cost recommendations before export.
+6. Display every generated image inline in the current conversation. A text-only success message or local path is incomplete.
+7. The browser workbench cannot dispatch into the active Codex conversation; copy and send the task's `handoff.instruction` in Codex.
+8. Import every selected image into the project through the native-image endpoint so it receives a version, prompt hash and image hash.
+9. Run visual QA V2. Repair local defects or regenerate structural failures; stop automatic repair after two rounds.
+10. Assemble the unified storyboard only from approved frames.
+11. Continue to Seedance, Remotion, Hyperframes, AE, PR or another configured post-production route.
+12. Review publishing, audience and cost recommendations before export.
 
 ## Codex native image route
 
 - `POST /api/pipeline/prompt-refine`
 - `POST /api/pipeline/native-image/task`
 - call Codex built-in `image_gen`
+- display the generated image inline in the current conversation
+- note that the browser cannot auto-send; copy `handoff.instruction` into Codex
 - `POST /api/pipeline/native-image/import`
 - `POST /api/pipeline/visual-check`
 - `POST /api/pipeline/native-image/repair` when required

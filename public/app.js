@@ -119,6 +119,7 @@ const pipelineImageDiagnosticsButton = document.querySelector("#pipelineImageDia
 const pipelineCreativeSuiteButton = document.querySelector("#pipelineCreativeSuiteButton");
 const pipelineVisualBibleButton = document.querySelector("#pipelineVisualBibleButton");
 const pipelineNativeImageTaskButton = document.querySelector("#pipelineNativeImageTaskButton");
+const pipelineNativeImageCopyButton = document.querySelector("#pipelineNativeImageCopyButton");
 const pipelineNativeImageImportButton = document.querySelector("#pipelineNativeImageImportButton");
 const pipelineVisualQaDiagnosticsButton = document.querySelector("#pipelineVisualQaDiagnosticsButton");
 const pipelineStatus = document.querySelector("#pipelineStatus");
@@ -170,6 +171,7 @@ let activeProjectSlug = "";
 let currentAgentRunId = "";
 let agentPollTimer = null;
 let agentWorkspaces = [];
+let latestCodexNativeHandoff = "";
 
 function formatBytes(bytes) {
   const units = ["B", "KB", "MB", "GB", "TB"];
@@ -278,7 +280,8 @@ function renderAgentRun(run = null) {
         ${pendingApproval.type === "codex_native_image_generation" && pendingApproval.request?.task ? `
           <p class="item-meta">任务目录：${escapeHtml(pendingApproval.request.task.outputDir || "")}</p>
           <p class="item-meta">提示词文件：${escapeHtml(pendingApproval.request.task.files?.promptMarkdown || "")}</p>
-          <p>先由 Codex 原生 image-2 生成图片，再把图片路径填入“生成图 / 待检查图片路径”。</p>
+          <p>网页工作台不能自动向当前 Codex 对话发送消息或调用 image_gen。请复制执行指令，在当前对话中发送后生成图片。</p>
+          ${pendingApproval.request.task.handoff?.instruction ? `<button class="copy-native-handoff" type="button" data-handoff="${escapeHtml(pendingApproval.request.task.handoff.instruction)}">复制 Codex 执行指令</button>` : ""}
         ` : ""}
         <div class="button-row">
           <button class="primary agent-action" type="button" data-agent-action="approve" data-agent-run-id="${escapeHtml(run.id)}" data-approval-id="${escapeHtml(pendingApproval.id)}" data-approval-type="${escapeHtml(pendingApproval.type)}">${approvalButtonLabel}</button>
@@ -291,6 +294,8 @@ function renderAgentRun(run = null) {
         <strong>Codex 原生 image-2 任务</strong>
         <p class="item-meta">${escapeHtml(nativeImageTask.outputDir || "")}</p>
         <p class="item-meta">${escapeHtml(nativeImageTask.files?.promptMarkdown || "")}</p>
+        <p>交接方式：${nativeImageTask.handoff?.automaticDispatch === false ? "复制指令到当前 Codex 对话" : "自动发送"}</p>
+        ${nativeImageTask.handoff?.instruction ? `<button class="copy-native-handoff" type="button" data-handoff="${escapeHtml(nativeImageTask.handoff.instruction)}">复制 Codex 执行指令</button>` : ""}
       </div>
     ` : ""}
     ${imagePath ? `
@@ -424,7 +429,7 @@ async function handleAgentAction(button) {
         pipelineImagePathInput?.focus();
         return;
       }
-      if (action === "approve" && isCodexNative && !window.confirm("确认导入这张 Codex 原生生成图，并进入真实图片视觉复核？")) return;
+      if (action === "approve" && isCodexNative && !window.confirm("确认这张图已经直接显示在当前 Codex 对话中，并导入工作台进入真实图片视觉复核？")) return;
       if (action === "approve" && !isPaid && !isCodexNative && !window.confirm("确认该生成图通过视觉终审并继续后续流程？")) return;
       const approvalResponse = isPaid
         ? { acknowledgedCost: true, approvedBy: "workbench-user" }
@@ -432,6 +437,7 @@ async function handleAgentAction(button) {
           ? {
               sourceImagePath: pipelineImagePathInput.value.trim(),
               confirmedGeneratedByCodexNative: true,
+              conversationImageDisplayed: true,
               approvedBy: "workbench-user"
             }
           : { confirmedPass: true, approvedBy: "workbench-user" };
@@ -1283,6 +1289,10 @@ function renderPipelinePlan(payload = null, label = "已生成") {
   const promptV2 = payload.refinedPrompt?.promptV2 || payload.promptV2 || payload.promptPlan?.refinedPrompt?.promptV2 || null;
   const visualQaV2 = payload.visualQaV2 || payload.visualCheck?.visualQaV2 || nativeImageImport?.visualCheck?.visualQaV2 || null;
   const importedImagePath = nativeImageImport?.imported?.outputPath || "";
+  if (nativeImageTask?.handoff?.instruction) {
+    latestCodexNativeHandoff = nativeImageTask.handoff.instruction;
+    if (pipelineNativeImageCopyButton) pipelineNativeImageCopyButton.disabled = false;
+  }
   const json = JSON.stringify(payload, null, 2);
   pipelineResult.innerHTML = `
     <article class="literature-block">
@@ -1384,7 +1394,9 @@ function renderPipelinePlan(payload = null, label = "已生成") {
         <p>任务目录：${escapeHtml(nativeImageTask.outputDir || "")}</p>
         <p>预期落盘：${escapeHtml(nativeImageTask.expectedOutput || "")}</p>
         <p>提示词文件：${escapeHtml(nativeImageTask.files?.promptMarkdown || "")}</p>
-        <p>下一步：使用 Codex 原生 image-2 生成图片，然后填写图片路径并点击“导入 Codex 图片”。</p>
+        <p><strong>显示要求：</strong>Codex 必须先把 image-2 结果直接显示在当前对话中；仅返回路径不算完成。</p>
+        <p><strong>系统边界：</strong>网页工作台不能自行向当前 Codex 对话发送消息或图片。</p>
+        <p>下一步：复制执行指令到 Codex 对话，显示生成图后填写同一图片的本地路径并点击“导入 Codex 图片”。</p>
       </article>
     ` : ""}
     ${nativeImageImport ? `
@@ -1392,6 +1404,7 @@ function renderPipelinePlan(payload = null, label = "已生成") {
         <h3>Codex 图片已落盘</h3>
         <p>版本：v${escapeHtml(String(nativeImageImport.imported?.version || 1).padStart(3, "0"))}</p>
         <p>SHA-256：${escapeHtml(nativeImageImport.imported?.sha256 || "")}</p>
+        <p>对话展示：${nativeImageImport.imported?.conversationPresentation?.displayedByBuiltInTool ? "已确认" : "仍需在 Codex 当前对话中显示"}</p>
         <p>输出图：${escapeHtml(importedImagePath)}</p>
         ${importedImagePath ? `<img class="generated-image-preview" loading="lazy" src="/api/output-files?path=${encodeURIComponent(importedImagePath)}" alt="Codex 原生 image-2 落盘结果">` : ""}
         <p>${escapeHtml(nativeImageImport.nextAction || "")}</p>
@@ -2600,12 +2613,28 @@ async function createCodexNativeImageTaskFromWorkbench() {
     "/api/pipeline/native-image/task",
     pipelineNativeImageTaskButton,
     "正在编译 Prompt V2 并创建 Codex 原生 image-2 任务...",
-    "Codex 原生 image-2 任务已创建。",
+    "Codex 原生 image-2 任务包已创建；请复制执行指令到当前 Codex 对话。",
     { useLlm: false }
   );
   if (result?.outputDir && pipelineNativeTaskDirectoryInput) {
     pipelineNativeTaskDirectoryInput.value = result.outputDir;
   }
+  latestCodexNativeHandoff = result?.handoff?.instruction || "";
+  if (pipelineNativeImageCopyButton) pipelineNativeImageCopyButton.disabled = !latestCodexNativeHandoff;
+}
+
+async function copyCodexNativeHandoff(button = pipelineNativeImageCopyButton, instruction = latestCodexNativeHandoff) {
+  if (!instruction) {
+    pipelineStatus.textContent = "请先创建 Codex 生图任务包。";
+    return;
+  }
+  await navigator.clipboard.writeText(instruction);
+  if (button) {
+    const previous = button.textContent;
+    button.textContent = "已复制，去 Codex 对话发送";
+    setTimeout(() => { button.textContent = previous; }, 1600);
+  }
+  pipelineStatus.textContent = "执行指令已复制；请在当前 Codex 对话中发送，图片会先显示在对话里。";
 }
 
 async function importCodexNativeImageFromWorkbench() {
@@ -2966,6 +2995,7 @@ if (buildDailyBriefButton) buildDailyBriefButton.addEventListener("click", build
 if (pipelinePromptRefineButton) pipelinePromptRefineButton.addEventListener("click", refinePipelinePrompt);
 if (pipelineVisualBibleButton) pipelineVisualBibleButton.addEventListener("click", buildVisualBible);
 if (pipelineNativeImageTaskButton) pipelineNativeImageTaskButton.addEventListener("click", createCodexNativeImageTaskFromWorkbench);
+if (pipelineNativeImageCopyButton) pipelineNativeImageCopyButton.addEventListener("click", () => copyCodexNativeHandoff());
 if (pipelineNativeImageImportButton) pipelineNativeImageImportButton.addEventListener("click", importCodexNativeImageFromWorkbench);
 if (pipelineVisualQaDiagnosticsButton) pipelineVisualQaDiagnosticsButton.addEventListener("click", runVisualQaDiagnostics);
 if (pipelineAutoExecuteButton) pipelineAutoExecuteButton.addEventListener("click", runAutonomousPipeline);
@@ -3040,7 +3070,12 @@ if (agentRunList) {
   });
 }
 if (agentRunDetail) {
-  agentRunDetail.addEventListener("click", (event) => {
+  agentRunDetail.addEventListener("click", async (event) => {
+    const copyButton = event.target.closest(".copy-native-handoff");
+    if (copyButton) {
+      await copyCodexNativeHandoff(copyButton, copyButton.dataset.handoff || "");
+      return;
+    }
     const button = event.target.closest(".agent-action");
     if (!button) return;
     handleAgentAction(button);

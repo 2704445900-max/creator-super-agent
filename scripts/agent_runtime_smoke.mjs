@@ -58,6 +58,35 @@ if (nativeCurrent.status !== "waiting_approval" || nativeApproval?.type !== "cod
 if (!nativeCurrent.state?.nativeImageTask?.outputDir || !nativeApproval.request?.task?.files?.promptMarkdown) {
   throw new Error("Native image task was not persisted before approval.");
 }
+if (nativeCurrent.state.nativeImageTask.conversationPresentation?.required !== true) {
+  throw new Error("Native image task does not require inline conversation display.");
+}
+if (nativeCurrent.state.nativeImageTask.handoff?.automaticDispatch !== false
+  || !nativeCurrent.state.nativeImageTask.handoff?.instruction) {
+  throw new Error("Native image task does not expose a copyable Codex conversation handoff.");
+}
+if (nativeApproval.request?.conversationPresentation?.required !== true
+  || nativeApproval.request?.expectedResponse?.conversationImageDisplayed !== true) {
+  throw new Error("Native image approval does not enforce inline conversation display.");
+}
+let missingDisplayRejected = false;
+try {
+  await request(`/api/agent/runs/${encodeURIComponent(nativeRun.id)}/approve`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      approvalId: nativeApproval.id,
+      decision: "approved",
+      response: {
+        sourceImagePath: "C:\\generated-images\\smoke.png",
+        confirmedGeneratedByCodexNative: true
+      }
+    })
+  });
+} catch (error) {
+  missingDisplayRejected = /displayed inline/i.test(error.message);
+}
+if (!missingDisplayRejected) throw new Error("Native image approval accepted a result that was not displayed inline.");
 await request(`/api/agent/runs/${encodeURIComponent(nativeRun.id)}/cancel`, { method: "POST" });
 
 console.log(JSON.stringify({

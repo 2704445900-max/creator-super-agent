@@ -185,13 +185,18 @@ function approvalRequestForStep(step, run) {
   if (step.autoLevel === "codex_native_confirm") {
     return {
       title: "使用 Codex 原生 image-2 完成生图",
-      reason: "工作台已生成提示词和落盘任务包；Codex 必须调用内置 image_gen，保存图片后提交本地路径。",
+      reason: "工作台已生成任务包，但网页不能向当前 Codex 对话自动发送消息或调用 image_gen。请复制任务指令到当前对话，由 Codex 显示生成图后提交本地路径。",
       model: "gpt-image-2",
       executionMode: "codex_native",
       task: run.state.nativeImageTask || null,
+      conversationPresentation: {
+        required: true,
+        rule: "The image_gen result must be displayed inline in the current conversation before the local path is submitted. A text-only response is incomplete."
+      },
       expectedResponse: {
         sourceImagePath: "$CODEX_HOME/generated_images/.../generated.png",
-        confirmedGeneratedByCodexNative: true
+        confirmedGeneratedByCodexNative: true,
+        conversationImageDisplayed: true
       }
     };
   }
@@ -523,9 +528,18 @@ export function createAgentRuntime(db, options = {}) {
     if (!approval || approval.status !== "pending") throw new Error("approval is not pending");
     const decision = compact(input.decision || "approved").toLowerCase();
     const status = ["reject", "rejected", "deny", "denied"].includes(decision) ? "rejected" : "approved";
+    const response = input.response || input.review || {};
+    if (status === "approved" && approval.approval_type === "codex_native_image_generation") {
+      if (!compact(response.sourceImagePath) || response.confirmedGeneratedByCodexNative !== true) {
+        throw new Error("Codex native image approval requires the generated local image path");
+      }
+      if (response.conversationImageDisplayed !== true) {
+        throw new Error("Codex native image must be displayed inline in the current conversation before approval");
+      }
+    }
     const now = nowIso();
     db.prepare("UPDATE agent_approvals SET status = ?, response_json = ?, resolved_at = ? WHERE id = ?")
-      .run(status, stringify(input.response || input.review || {}), now, approvalId);
+      .run(status, stringify(response), now, approvalId);
     if (status === "rejected") {
       db.prepare("UPDATE agent_runs SET status = 'paused', updated_at = ? WHERE id = ?").run(now, id);
       db.prepare("UPDATE agent_steps SET status = 'waiting_approval', updated_at = ? WHERE id = ?").run(now, approval.step_id);

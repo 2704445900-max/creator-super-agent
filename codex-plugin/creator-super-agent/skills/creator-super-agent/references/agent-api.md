@@ -26,7 +26,9 @@ POST /api/agent/runs
 
 ## Complete a Codex native image step
 
-When the run pauses with `approval_type: "codex_native_image_generation"`, use the task prompt and references, call Codex built-in `image_gen`, then submit the generated local file path:
+When the run pauses with `approval_type: "codex_native_image_generation"`, use the task prompt and references, call Codex built-in `image_gen`, display the result inline in the current conversation, then submit the generated local file path. Do not send a text-only completion response.
+
+The browser workbench cannot dispatch this action into the active Codex conversation. Copy `request.task.handoff.instruction` and send it in Codex first.
 
 ```json
 POST /api/agent/runs/<id>/approve
@@ -35,7 +37,8 @@ POST /api/agent/runs/<id>/approve
   "decision": "approved",
   "response": {
     "sourceImagePath": "C:\\Users\\...\\generated.png",
-    "confirmedGeneratedByCodexNative": true
+    "confirmedGeneratedByCodexNative": true,
+    "conversationImageDisplayed": true
   }
 }
 ```

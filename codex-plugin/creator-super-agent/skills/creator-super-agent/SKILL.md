@@ -22,7 +22,7 @@ When the user gives a clear creative command, create and run a persistent agent 
 2. Start `POST /api/agent/runs` with the goal, script, duration, budget, account profile, and whether images are required.
 3. Poll `GET /api/agent/runs/<id>` until the task completes, fails, or waits for approval.
 4. Preserve the project slug and use it on all downstream outputs.
-5. For Codex native image generation, create the task package, call built-in `image_gen`, import the selected file, then continue. For direct paid API generation, present the cost approval first.
+5. For Codex native image generation, create the task package, call built-in `image_gen`, display the image inline in the current conversation, import the selected file, then continue. For direct paid API generation, present the cost approval first.
 6. After image generation, inspect identity, outfit, prop, anatomy, hands, composition, space, style, continuity, and 180-degree axis before approving the visual gate.
 7. Resume the task to video planning, publishing, and portable archiving.
 
@@ -31,6 +31,8 @@ The runtime persists steps, events, approvals, errors, and outputs in SQLite and
 ## Image Policy
 
 - Inside Codex, primary route: compile Prompt V2, create `/api/pipeline/native-image/task`, call built-in `image_gen` / `gpt-image-2`, then use `/api/pipeline/native-image/import` for versioned local persistence.
+- Every built-in image result must be shown inline in the current conversation. A text-only success message or a local path does not satisfy the image request.
+- The browser workbench cannot automatically send a message, invoke `image_gen`, or insert an image into the active Codex conversation. It creates a task package and copyable `handoff.instruction`; Codex executes only after that instruction is sent in the conversation.
 - Never leave the only copy in chat history or `$CODEX_HOME/generated_images`; persist the prompt, reference choices, output path, hash and QA result in the project.
 - When using the workbench, use `/api/pipeline/image-generate` for text-to-image and `/api/pipeline/reference-image-generate` for real reference conditioning or image editing.
 - ComfyUI is optional fallback only. Do not make it the default requirement.
@@ -89,4 +91,4 @@ See `references/agent-api.md` for request examples.
 
 ## Completion Standard
 
-Do not call a project complete because a plan exists. Confirm the required project files, asset inventory, storyboard data, generated keyframes when requested, visual QA, video plan, publishing package, and archive are present. State clearly when an external model, browser login, or desktop application still requires user interaction.
+Do not call a project complete because a plan exists. Confirm the required project files, asset inventory, storyboard data, generated keyframes when requested, inline conversation display for every requested image, visual QA, video plan, publishing package, and archive are present. State clearly when an external model, browser login, or desktop application still requires user interaction.

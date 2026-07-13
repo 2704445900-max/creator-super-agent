@@ -995,6 +995,7 @@ async function handleApi(req, res, url) {
       standard: "creator-codex-native-image-import-v1",
       imported,
       visualCheck,
+      conversationPresentation: imported.conversationPresentation,
       nextAction: "Codex 必须打开 imported.outputPath，提交 visualReview 结构后再次调用 /api/pipeline/visual-check。"
     });
     return true;
